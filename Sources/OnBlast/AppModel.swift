@@ -32,6 +32,7 @@ final class AppModel: ObservableObject {
     private let virtualMicDriverInstaller = VirtualMicDriverInstaller()
     private let virtualMicSelfTestController = VirtualMicSelfTestController()
     private let micSpeechActivityMonitor = MicSpeechActivityMonitor()
+    private let outputVolumeMonitor = OutputVolumeMonitor()
     private let dispatcher = ActionDispatcher()
     private let systemDefinedEventTap = SystemDefinedEventTap()
     private let hidMonitor = HIDEventMonitor()
@@ -51,12 +52,16 @@ final class AppModel: ObservableObject {
     private var cachedDefaultInputDeviceUID: String?
     private var audioDeviceRefreshInFlight = false
     private var audioDeviceRefreshNeedsReconfigure = false
+    private var hasRestoredPersistedMicState = false
 
     init() {
         config = AppConfiguration.load()
 
         dispatcher.onLog = { [weak self] in self?.appendLog($0) }
         virtualMicProxyController.onLog = { [weak self] in self?.appendLog($0) }
+        virtualMicProxyController.onSpeechDetected = { [weak self] in
+            self?.handleSpeechDetectedWhileMuted($0)
+        }
         virtualMicDriverInstaller.onLog = { [weak self] message in
             Task { @MainActor in
                 self?.appendLog(message)
@@ -77,6 +82,8 @@ final class AppModel: ObservableObject {
         micSpeechActivityMonitor.onSpeechDetected = { [weak self] in
             self?.handleSpeechDetectedWhileMuted($0)
         }
+        outputVolumeMonitor.onLog = { [weak self] in self?.appendLog($0) }
+        outputVolumeMonitor.onButtonEvent = { [weak self] in self?.handleInterceptableButtonEvent($0) ?? false }
         systemDefinedEventTap.onLog = { [weak self] in self?.appendLog($0) }
         systemDefinedEventTap.onButtonEvent = { [weak self] in self?.handleInterceptableButtonEvent($0) ?? false }
         hidMonitor.onLog = { [weak self] in self?.appendLog($0) }
@@ -192,7 +199,7 @@ final class AppModel: ObservableObject {
         accessibilityGranted = AXIsProcessTrusted()
         micState = activeMicController.currentState()
 
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.gieseking.MediaButtonInterceptor"
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.gieseking.OnBlast"
         startupStatus = startupManager.status(bundleID: bundleID)
 
         if isReady, previousAccessibilityGranted != accessibilityGranted {
@@ -217,6 +224,11 @@ final class AppModel: ObservableObject {
         applyAudioDeviceDependentConfiguration()
         refreshAudioDevicesAsync(forceReconfigure: true)
 
+        if previousConfiguration == nil || previousConfiguration?.micMuteBackend != config.micMuteBackend {
+            hasRestoredPersistedMicState = false
+            restorePersistedMicState(reason: previousConfiguration == nil ? "startup" : "backend switch")
+        }
+
         if previousConfiguration == nil ||
             previousConfiguration?.micMuteBackend != config.micMuteBackend ||
             previousConfiguration?.virtualMicInputDeviceUID != config.virtualMicInputDeviceUID {
@@ -239,8 +251,19 @@ final class AppModel: ObservableObject {
         )
 
         if previousConfiguration == nil ||
-            previousConfiguration?.enableMutedSpeechReminder != config.enableMutedSpeechReminder {
-            micSpeechActivityMonitor.start(enabled: config.enableMutedSpeechReminder)
+            previousConfiguration?.enableMutedSpeechReminder != config.enableMutedSpeechReminder ||
+            previousConfiguration?.micMuteBackend != config.micMuteBackend {
+            micSpeechActivityMonitor.start(enabled: shouldUseStandaloneMutedSpeechMonitor)
+        }
+
+        if previousConfiguration == nil ||
+            previousConfiguration?.enableOutputVolumeFallback != config.enableOutputVolumeFallback ||
+            previousConfiguration?.boseNameFilter != config.boseNameFilter ||
+            previousConfiguration?.consumeInterceptedEvents != config.consumeInterceptedEvents ||
+            previousConfiguration?.action(for: .volumeUp) != config.action(for: .volumeUp) ||
+            previousConfiguration?.action(for: .volumeDown) != config.action(for: .volumeDown) ||
+            previousConfiguration?.action(for: .mute) != config.action(for: .mute) {
+            outputVolumeMonitor.start(configuration: config)
         }
 
         if previousConfiguration == nil ||
@@ -284,7 +307,7 @@ final class AppModel: ObservableObject {
             siriActivationMonitor.start(enabled: config.enableSiriActivationFallback)
         }
 
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.gieseking.MediaButtonInterceptor"
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.gieseking.OnBlast"
         if previousConfiguration == nil || previousConfiguration?.startAtLogin != config.startAtLogin {
             if let bundleURL = Bundle.main.bundleURLIfAppBundle {
                 do {
@@ -309,6 +332,7 @@ final class AppModel: ObservableObject {
             selectedInputDeviceUID: resolvedPhysicalInputDeviceUID,
             selectedInputDeviceName: resolvedPhysicalInputDeviceName,
             selectedInputSampleRate: resolvedPhysicalInputSampleRate,
+            speechDetectionEnabled: config.enableMutedSpeechReminder,
             bundledVirtualDeviceUID: resolvedBundledVirtualMicDeviceUID,
             virtualDeviceDetected: virtualMicDeviceDetected
         )
@@ -384,11 +408,17 @@ final class AppModel: ObservableObject {
             return
         }
 
+        hasRestoredPersistedMicState = true
+
         switch newMicState {
         case .muted:
+            persistPreferredMicState(isMuted: true)
             mutedSpeechReminderArmed = true
             micSpeechActivityMonitor.suppressDetection(for: 1.5)
         case .live, .unavailable, .unknown:
+            if newMicState == .live {
+                persistPreferredMicState(isMuted: false)
+            }
             mutedSpeechReminderArmed = false
         }
     }
@@ -442,6 +472,48 @@ final class AppModel: ObservableObject {
         }
     }
 
+    private var shouldUseStandaloneMutedSpeechMonitor: Bool {
+        config.enableMutedSpeechReminder && config.micMuteBackend == .deviceMute
+    }
+
+    private func restorePersistedMicState(reason: String) {
+        guard !hasRestoredPersistedMicState else {
+            return
+        }
+
+        let desiredMuted = config.restoreMutedStateOnLaunch
+
+        do {
+            let currentState = activeMicController.currentState()
+            if currentState == .muted && desiredMuted {
+                hasRestoredPersistedMicState = true
+                return
+            }
+            if currentState == .live && !desiredMuted {
+                hasRestoredPersistedMicState = true
+                return
+            }
+
+            try activeMicController.setMuted(desiredMuted)
+            let previousState = micState
+            let restoredState = activeMicController.currentState()
+            micState = restoredState
+            hasRestoredPersistedMicState = true
+            appendLog("Restored microphone state to \(desiredMuted ? "muted" : "live") on \(reason)")
+            handleMicStateTransition(from: previousState, to: restoredState)
+        } catch {
+            appendLog("Failed to restore microphone state on \(reason): \(error.localizedDescription)")
+        }
+    }
+
+    private func persistPreferredMicState(isMuted: Bool) {
+        guard config.restoreMutedStateOnLaunch != isMuted else {
+            return
+        }
+
+        config.restoreMutedStateOnLaunch = isMuted
+    }
+
     private var resolvedPhysicalInputDeviceUID: String {
         let trimmed = config.virtualMicInputDeviceUID.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty, inputAudioDevices.contains(where: { $0.uid == trimmed }) {
@@ -467,11 +539,13 @@ final class AppModel: ObservableObject {
 
     private var resolvedBundledVirtualMicDeviceUID: String {
         let trimmed = config.virtualMicOutputDeviceUID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return audioDeviceCatalog.bundledVirtualMicDevice(from: cachedAudioDevices)?.uid ?? ""
+        if !trimmed.isEmpty,
+           let matchingDevice = cachedAudioDevices.first(where: { $0.uid == trimmed }),
+           matchingDevice.name == AudioDeviceCatalog.bundledVirtualMicDeviceName {
+            return trimmed
         }
 
-        return trimmed
+        return audioDeviceCatalog.bundledVirtualMicDevice(from: cachedAudioDevices)?.uid ?? ""
     }
 
     private var resolvedBundledVirtualMicDeviceName: String {

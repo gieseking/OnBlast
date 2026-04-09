@@ -114,6 +114,7 @@ final class UnifiedSystemLogMonitor: @unchecked Sendable {
             "sirincactionbvra1",
             "invoking action 'sirincactionbvra1'",
             "sirincactionbvra1 - bluetoothhfp",
+            "sending command <mrdmutableremotecontrolcommand",
             "processatcommand",
             "processapplecommand",
             "processappleevent",
@@ -199,6 +200,16 @@ final class UnifiedSystemLogMonitor: @unchecked Sendable {
             return .voiceCommand
         }
 
+        if let mediaRemoteCommand = extractMediaRemoteCommandName(from: lowercasedLine),
+           let button = decodeMediaRemoteCommandName(mediaRemoteCommand) {
+            return button
+        }
+
+        if let avrcpCommandCode = extractAVRCPCommandCode(from: lowercasedLine),
+           let button = decodeAVRCPCommandCode(avrcpCommandCode) {
+            return button
+        }
+
         if lowercasedLine.contains("volume up") {
             return .volumeUp
         }
@@ -231,6 +242,80 @@ final class UnifiedSystemLogMonitor: @unchecked Sendable {
         }
 
         return nil
+    }
+
+    private func extractMediaRemoteCommandName(from lowercasedLine: String) -> String? {
+        guard let commandRange = lowercasedLine.range(of: "command = ") else {
+            return nil
+        }
+
+        let suffix = lowercasedLine[commandRange.upperBound...]
+        let commandName = suffix.prefix { character in
+            character != "," && character != ">" && !character.isNewline
+        }
+
+        let trimmed = commandName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func decodeMediaRemoteCommandName(_ commandName: String) -> ButtonIdentifier? {
+        switch commandName {
+        case "play", "pause", "toggleplaypause", "toggle play/pause":
+            return .playPause
+        case "nexttrack", "next track", "skipforward", "skip forward":
+            return .nextTrack
+        case "previoustrack", "previous track", "skipbackward", "skip backward":
+            return .previousTrack
+        case "volumeup", "volume up":
+            return .volumeUp
+        case "volumedown", "volume down":
+            return .volumeDown
+        case "mute":
+            return .mute
+        default:
+            return nil
+        }
+    }
+
+    private func extractAVRCPCommandCode(from lowercasedLine: String) -> UInt32? {
+        guard
+            lowercasedLine.contains("processapplecommand") ||
+            lowercasedLine.contains("remote command") ||
+            lowercasedLine.contains("apple command")
+        else {
+            return nil
+        }
+
+        guard let hexRange = lowercasedLine.range(of: "0x") else {
+            return nil
+        }
+
+        let suffix = lowercasedLine[hexRange.upperBound...]
+        let hexDigits = suffix.prefix { $0.isHexDigit }
+        guard !hexDigits.isEmpty else {
+            return nil
+        }
+
+        return UInt32(hexDigits, radix: 16)
+    }
+
+    private func decodeAVRCPCommandCode(_ code: UInt32) -> ButtonIdentifier? {
+        switch code {
+        case 0x41:
+            return .volumeUp
+        case 0x42:
+            return .volumeDown
+        case 0x43:
+            return .mute
+        case 0x44, 0x46:
+            return .playPause
+        case 0x4B:
+            return .nextTrack
+        case 0x4C:
+            return .previousTrack
+        default:
+            return nil
+        }
     }
 
     private func extractDeviceIdentifier(from line: String) -> String? {

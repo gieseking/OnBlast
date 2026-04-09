@@ -1,4 +1,4 @@
-name: MediaButtonVirtualAudioDevice
+name: OnBlastVirtualAudioDevice
 
 options:
   minimumXcodeGenVersion: 2.45.0
@@ -20,7 +20,7 @@ settings:
     SDKROOT: macosx
 
 targets:
-  MediaButtonVirtualAudioPlugIn:
+  OnBlastVirtualAudioPlugIn:
     type: bundle
     platform: macOS
     sources:
@@ -30,22 +30,22 @@ targets:
       - path: Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gieseking.MediaButtonInterceptor.VirtualAudioPlugIn
-        PRODUCT_NAME: MediaButtonVirtualAudioPlugIn
+        PRODUCT_BUNDLE_IDENTIFIER: com.gieseking.OnBlast.VirtualAudioPlugIn
+        PRODUCT_NAME: OnBlastVirtualAudioPlugIn
         INFOPLIST_FILE: AudioServerPlugIn/Info.plist
         WRAPPER_EXTENSION: driver
         MACH_O_TYPE: mh_bundle
-        EXECUTABLE_NAME: MediaButtonVirtualAudioPlugIn
+        EXECUTABLE_NAME: OnBlastVirtualAudioPlugIn
         HEADER_SEARCH_PATHS:
           - $(SRCROOT)/Shared
         OTHER_LDFLAGS:
-          - -Wl,-exported_symbol,_MediaButtonVirtualAudioFactory
+          - -Wl,-exported_symbol,_OnBlastVirtualAudioFactory
           - -Wl,-exported_symbol,_AudioServerPlugInMain
     dependencies:
       - sdk: CoreAudio.framework
       - sdk: CoreFoundation.framework
 
-  MediaButtonVirtualAudioXPC:
+  OnBlastVirtualAudioXPC:
     type: bundle
     platform: macOS
     sources:
@@ -54,12 +54,12 @@ targets:
           - Info.plist
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.gieseking.MediaButtonInterceptor.VirtualAudioXPC
-        PRODUCT_NAME: MediaButtonVirtualAudioXPC
+        PRODUCT_BUNDLE_IDENTIFIER: com.gieseking.OnBlast.VirtualAudioXPC
+        PRODUCT_NAME: OnBlastVirtualAudioXPC
         INFOPLIST_FILE: XPCService/Info.plist
         WRAPPER_EXTENSION: xpc
         MACH_O_TYPE: mh_execute
-        EXECUTABLE_NAME: MediaButtonVirtualAudioXPC
+        EXECUTABLE_NAME: OnBlastVirtualAudioXPC
         EMBEDDED_CONTENT_CONTAINS_SWIFT: YES
         LD_RUNPATH_SEARCH_PATHS:
           - $(inherited)
@@ -68,10 +68,10 @@ targets:
       - sdk: Foundation.framework
 
 schemes:
-  MediaButtonVirtualAudio:
+  OnBlastVirtualAudio:
     build:
       targets:
-        MediaButtonVirtualAudioPlugIn: all
-        MediaButtonVirtualAudioXPC: all
+        OnBlastVirtualAudioPlugIn: all
+        OnBlastVirtualAudioXPC: all
     run:
       config: Debug

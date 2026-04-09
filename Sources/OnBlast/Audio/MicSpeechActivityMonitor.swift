@@ -16,12 +16,15 @@ final class MicSpeechActivityMonitor: @unchecked Sendable {
     private let requiredConsecutiveBuffers = 2
     private let eventCooldown: TimeInterval = 1.5
     private let vadPollingInterval: TimeInterval = 0.2
-    private let stateQueue = DispatchQueue(label: "com.gieseking.MediaButtonInterceptor.MicSpeechActivityMonitor")
+    private let stateQueue = DispatchQueue(label: "com.gieseking.OnBlast.MicSpeechActivityMonitor")
     private let stateLock = NSLock()
 
+    private var enabled = false
     private var consecutiveBuffersOverThreshold = 0
     private var suppressDetectionUntil = Date.distantPast
     private var isRunning = false
+    private var audioTapRestartQueued = false
+    private var audioEngineConfigurationObserver: NSObjectProtocol?
     private var vadTimer: DispatchSourceTimer?
     private var vadEnabledDevice: AudioDeviceID?
     private var vadSupported = false
@@ -29,20 +32,25 @@ final class MicSpeechActivityMonitor: @unchecked Sendable {
 
     func start(enabled: Bool) {
         stop()
+        self.enabled = enabled
 
         guard enabled else {
             return
         }
 
+        registerAudioEngineConfigurationObserver()
         startVoiceActivityDetectionPolling()
         startAudioTapFallback()
     }
 
     func stop() {
+        enabled = false
+        unregisterAudioEngineConfigurationObserver()
         stopVoiceActivityDetectionPolling()
         stopAudioTapFallback()
         consecutiveBuffersOverThreshold = 0
         suppressDetectionUntil = Date.distantPast
+        audioTapRestartQueued = false
     }
 
     func suppressDetection(for duration: TimeInterval) {
@@ -53,6 +61,8 @@ final class MicSpeechActivityMonitor: @unchecked Sendable {
     }
 
     private func startAudioTapFallback() {
+        engine.stop()
+        engine.reset()
         let inputNode = engine.inputNode
         let hardwareFormat = inputNode.inputFormat(forBus: 0)
         guard hardwareFormat.channelCount > 0 else {
@@ -83,12 +93,9 @@ final class MicSpeechActivityMonitor: @unchecked Sendable {
     }
 
     private func stopAudioTapFallback() {
-        guard isRunning else {
-            return
-        }
-
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
+        engine.reset()
         isRunning = false
     }
 
@@ -112,6 +119,10 @@ final class MicSpeechActivityMonitor: @unchecked Sendable {
     }
 
     private func pollVoiceActivityDetection() {
+        if enabled, !engine.isRunning {
+            queueAudioTapRestartIfNeeded(reason: "audio engine is not running")
+        }
+
         guard let device = try? defaultInputDevice() else {
             if vadEnabledDevice != nil {
                 vadEnabledDevice = nil
@@ -317,6 +328,46 @@ final class MicSpeechActivityMonitor: @unchecked Sendable {
     private func emitLog(_ message: String) {
         DispatchQueue.main.async {
             self.onLog?(message)
+        }
+    }
+
+    private func registerAudioEngineConfigurationObserver() {
+        audioEngineConfigurationObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: nil
+        ) { [weak self] _ in
+            self?.queueAudioTapRestartIfNeeded(reason: "audio engine configuration changed")
+        }
+    }
+
+    private func unregisterAudioEngineConfigurationObserver() {
+        if let observer = audioEngineConfigurationObserver {
+            NotificationCenter.default.removeObserver(observer)
+            audioEngineConfigurationObserver = nil
+        }
+    }
+
+    private func queueAudioTapRestartIfNeeded(reason: String) {
+        stateLock.lock()
+        guard enabled, !audioTapRestartQueued else {
+            stateLock.unlock()
+            return
+        }
+
+        audioTapRestartQueued = true
+        stateLock.unlock()
+
+        emitLog("Muted speech reminder audio tap is restarting because \(reason)")
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.stopAudioTapFallback()
+            if self.enabled {
+                self.startAudioTapFallback()
+            }
+            self.stateLock.lock()
+            self.audioTapRestartQueued = false
+            self.stateLock.unlock()
         }
     }
 }

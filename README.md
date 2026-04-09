@@ -1,6 +1,6 @@
-# MediaButtonInterceptor
+# OnBlast
 
-`MediaButtonInterceptor` is a macOS menu-bar helper for remapping headset and media-button events to actions like microphone mute, media transport controls, and extra function keys such as `F19`.
+`OnBlast` is a macOS menu-bar helper for remapping headset and media-button events to actions like microphone mute, media transport controls, and extra function keys such as `F19`.
 
 This workspace follows the plan in `/Users/gieseking/Downloads/Bose_Mac_Remapping_Plan.docx`:
 
@@ -19,13 +19,13 @@ This workspace follows the plan in `/Users/gieseking/Downloads/Bose_Mac_Remappin
 That creates:
 
 ```text
-.dist/MediaButtonInterceptor.app
+.dist/OnBlast.app
 ```
 
 ## Run
 
 ```bash
-open .dist/MediaButtonInterceptor.app
+open .dist/OnBlast.app
 ```
 
 ## Permissions

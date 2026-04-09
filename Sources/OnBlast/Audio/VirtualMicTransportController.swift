@@ -1,21 +1,23 @@
 import CoreAudio
 import Foundation
-import MBITransportShared
+import OBTransportShared
 
 final class VirtualMicTransportController: @unchecked Sendable {
     var onLog: ((String) -> Void)?
+    var onSpeechDetected: ((MicSpeechDetectionEvent) -> Void)?
 
-    private let sessionQueue = DispatchQueue(label: "MediaButtonInterceptor.VirtualMicTransport.session")
+    private let sessionQueue = DispatchQueue(label: "OnBlast.VirtualMicTransport.session")
 
     private var selectedInputDeviceUID = ""
     private var selectedInputDeviceName = ""
     private var selectedInputSampleRate: Double = 48_000
     private var selectedInputBufferFrameSize: UInt32 = 512
+    private var speechDetectionEnabled = false
     private var enabled = false
     private var virtualDeviceDetected = false
     private var muted = false
     private var sharedMemoryFileDescriptor: Int32 = -1
-    private var sharedMemoryPointer: UnsafeMutablePointer<MBITransportSharedMemory>?
+    private var sharedMemoryPointer: UnsafeMutablePointer<OBTransportSharedMemory>?
     private var runningCaptureDeviceUID = ""
     private var runningCaptureSampleRate: Double = 48_000
     private var runningCaptureBufferFrameSize: UInt32 = 512
@@ -28,6 +30,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
         selectedInputDeviceUID: String,
         selectedInputDeviceName: String,
         selectedInputSampleRate: Double,
+        speechDetectionEnabled: Bool,
         virtualDeviceDetected: Bool,
         muted: Bool
     ) {
@@ -35,7 +38,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
         self.selectedInputDeviceUID = selectedInputDeviceUID
         self.selectedInputDeviceName = selectedInputDeviceName
         self.selectedInputSampleRate = selectedInputSampleRate
-        self.selectedInputBufferFrameSize = 512
+        self.speechDetectionEnabled = speechDetectionEnabled
         self.virtualDeviceDetected = virtualDeviceDetected
         self.muted = muted
 
@@ -51,7 +54,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
                 return
             }
 
-            MBITransportSetMuted(sharedMemoryPointer, muted ? 1 : 0)
+            OBTransportSetMuted(sharedMemoryPointer, muted ? 1 : 0)
         }
     }
 
@@ -72,10 +75,12 @@ final class VirtualMicTransportController: @unchecked Sendable {
         }
 
         if let sharedMemoryPointer {
-            MBITransportSetSampleRate(sharedMemoryPointer, normalizedSampleRate(selectedInputSampleRate))
-            MBITransportSetBufferFrameSize(sharedMemoryPointer, selectedInputBufferFrameSize)
-            MBITransportSetMuted(sharedMemoryPointer, muted ? 1 : 0)
+            OBTransportSetSampleRate(sharedMemoryPointer, normalizedSampleRate(selectedInputSampleRate))
+            OBTransportSetBufferFrameSize(sharedMemoryPointer, selectedInputBufferFrameSize)
+            OBTransportSetMuted(sharedMemoryPointer, muted ? 1 : 0)
         }
+
+        captureContext?.speechDetectionEnabled = speechDetectionEnabled
 
         if ioProcID != nil,
            runningCaptureDeviceUID == selectedInputDeviceUID,
@@ -93,22 +98,22 @@ final class VirtualMicTransportController: @unchecked Sendable {
         }
 
         var fileDescriptor: Int32 = -1
-        var mappedPointer: UnsafeMutablePointer<MBITransportSharedMemory>?
-        let openStatus = MBITransportOpenSharedMemory(1, &fileDescriptor, &mappedPointer)
+        var mappedPointer: UnsafeMutablePointer<OBTransportSharedMemory>?
+        let openStatus = OBTransportOpenSharedMemory(1, &fileDescriptor, &mappedPointer)
         guard openStatus == 0, let mappedPointer else {
-            log("Virtual mic transport failed to open shared memory at \(String(cString: MBITransportSharedMemoryPath())) (errno \(openStatus))")
+            log("Virtual mic transport failed to open shared memory at \(String(cString: OBTransportSharedMemoryPath())) (errno \(openStatus))")
             return false
         }
 
         sharedMemoryFileDescriptor = fileDescriptor
         sharedMemoryPointer = mappedPointer
-        MBITransportInitialize(mappedPointer)
-        MBITransportSetSampleRate(mappedPointer, normalizedSampleRate(selectedInputSampleRate))
-        MBITransportSetBufferFrameSize(mappedPointer, selectedInputBufferFrameSize)
-        MBITransportSetMuted(mappedPointer, muted ? 1 : 0)
-        MBITransportSetRunning(mappedPointer, 0)
-        MBITransportSetSourceConnected(mappedPointer, 0)
-        log("Virtual mic transport shared memory opened at \(String(cString: MBITransportSharedMemoryPath()))")
+        OBTransportInitialize(mappedPointer)
+        OBTransportSetSampleRate(mappedPointer, normalizedSampleRate(selectedInputSampleRate))
+        OBTransportSetBufferFrameSize(mappedPointer, selectedInputBufferFrameSize)
+        OBTransportSetMuted(mappedPointer, muted ? 1 : 0)
+        OBTransportSetRunning(mappedPointer, 0)
+        OBTransportSetSourceConnected(mappedPointer, 0)
+        log("Virtual mic transport shared memory opened at \(String(cString: OBTransportSharedMemoryPath()))")
         return true
     }
 
@@ -120,8 +125,8 @@ final class VirtualMicTransportController: @unchecked Sendable {
         }
 
         guard let deviceID = resolveDeviceID(forUID: selectedInputDeviceUID) else {
-            MBITransportSetRunning(sharedMemoryPointer, 0)
-            MBITransportSetSourceConnected(sharedMemoryPointer, 0)
+            OBTransportSetRunning(sharedMemoryPointer, 0)
+            OBTransportSetSourceConnected(sharedMemoryPointer, 0)
             log("Virtual mic transport could not resolve CoreAudio input device UID '\(selectedInputDeviceUID)'")
             return
         }
@@ -150,12 +155,12 @@ final class VirtualMicTransportController: @unchecked Sendable {
         let resolvedBufferFrameSize = UInt32(max(bufferFrameSize, 1))
         selectedInputBufferFrameSize = resolvedBufferFrameSize
 
-        MBITransportInitialize(sharedMemoryPointer)
-        MBITransportSetSampleRate(sharedMemoryPointer, normalizedSampleRate(sampleRate))
-        MBITransportSetBufferFrameSize(sharedMemoryPointer, resolvedBufferFrameSize)
-        MBITransportSetMuted(sharedMemoryPointer, muted ? 1 : 0)
-        MBITransportSetRunning(sharedMemoryPointer, 0)
-        MBITransportSetSourceConnected(sharedMemoryPointer, 0)
+        OBTransportInitialize(sharedMemoryPointer)
+        OBTransportSetSampleRate(sharedMemoryPointer, normalizedSampleRate(sampleRate))
+        OBTransportSetBufferFrameSize(sharedMemoryPointer, resolvedBufferFrameSize)
+        OBTransportSetMuted(sharedMemoryPointer, muted ? 1 : 0)
+        OBTransportSetRunning(sharedMemoryPointer, 0)
+        OBTransportSetSourceConnected(sharedMemoryPointer, 0)
 
         let context = CaptureContext(
             sharedMemory: sharedMemoryPointer,
@@ -165,6 +170,10 @@ final class VirtualMicTransportController: @unchecked Sendable {
         context.onLog = { [weak self] message in
             self?.log(message)
         }
+        context.onSpeechDetected = { [weak self] event in
+            self?.emitSpeechDetected(event)
+        }
+        context.speechDetectionEnabled = speechDetectionEnabled
 
         var ioProcID: AudioDeviceIOProcID?
         let createStatus = AudioDeviceCreateIOProcID(
@@ -192,7 +201,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
         self.runningCaptureDeviceUID = selectedInputDeviceUID
         self.runningCaptureSampleRate = sampleRate
         self.runningCaptureBufferFrameSize = resolvedBufferFrameSize
-        MBITransportSetRunning(sharedMemoryPointer, 1)
+        OBTransportSetRunning(sharedMemoryPointer, 1)
         log(
             "Virtual mic transport started CoreAudio capture from '\(selectedInputDeviceName)' " +
             "(sampleRate=\(Int(streamDescription.mSampleRate.rounded())) channels=\(streamDescription.mChannelsPerFrame) " +
@@ -214,8 +223,8 @@ final class VirtualMicTransportController: @unchecked Sendable {
         runningCaptureBufferFrameSize = 512
 
         if let sharedMemoryPointer {
-            MBITransportSetRunning(sharedMemoryPointer, 0)
-            MBITransportSetSourceConnected(sharedMemoryPointer, 0)
+            OBTransportSetRunning(sharedMemoryPointer, 0)
+            OBTransportSetSourceConnected(sharedMemoryPointer, 0)
         }
 
         if let reason {
@@ -338,18 +347,32 @@ final class VirtualMicTransportController: @unchecked Sendable {
             onLog?(message)
         }
     }
+
+    private func emitSpeechDetected(_ event: MicSpeechDetectionEvent) {
+        let onSpeechDetected = self.onSpeechDetected
+        DispatchQueue.main.async {
+            onSpeechDetected?(event)
+        }
+    }
 }
 
 private final class CaptureContext {
     var onLog: ((String) -> Void)?
+    var onSpeechDetected: ((MicSpeechDetectionEvent) -> Void)?
+    var speechDetectionEnabled = false
 
-    private let sharedMemory: UnsafeMutablePointer<MBITransportSharedMemory>
+    private let sharedMemory: UnsafeMutablePointer<OBTransportSharedMemory>
     private let streamDescription: AudioStreamBasicDescription
+    private let speechDetectionThreshold: Float = 0.015
+    private let requiredConsecutiveBuffers = 2
+    private let speechEventCooldown: TimeInterval = 1.5
     private var scratchFrames: [Float]
     private var hasLoggedFirstCallback = false
+    private var consecutiveBuffersOverThreshold = 0
+    private var suppressSpeechDetectionUntil = Date.distantPast
 
     init(
-        sharedMemory: UnsafeMutablePointer<MBITransportSharedMemory>,
+        sharedMemory: UnsafeMutablePointer<OBTransportSharedMemory>,
         streamDescription: AudioStreamBasicDescription,
         maximumFrameCount: Int
     ) {
@@ -381,8 +404,9 @@ private final class CaptureContext {
 
         ensureScratchCapacity(frameCount)
         writeInput(audioBuffers: audioBuffers, frameCount: frameCount)
-        MBITransportSetSourceConnected(sharedMemory, 1)
-        MBITransportSetRunning(sharedMemory, 1)
+        detectSpeech(audioBuffers: audioBuffers, frameCount: frameCount)
+        OBTransportSetSourceConnected(sharedMemory, 1)
+        OBTransportSetRunning(sharedMemory, 1)
         return noErr
     }
 
@@ -412,17 +436,17 @@ private final class CaptureContext {
                 convertNonInterleavedFloatToMono(audioBuffers: audioBuffers, frameCount: frameCount, channelCount: channelCount)
                 scratchFrames.withUnsafeBufferPointer { buffer in
                     if let baseAddress = buffer.baseAddress {
-                        MBITransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
+                        OBTransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
                     }
                 }
             } else if let sourcePointer = audioBuffers[0].mData?.assumingMemoryBound(to: Float.self) {
                 if channelCount <= 1 {
-                    MBITransportWriteMonoFloat(sharedMemory, sourcePointer, UInt32(frameCount))
+                    OBTransportWriteMonoFloat(sharedMemory, sourcePointer, UInt32(frameCount))
                 } else {
                     convertInterleavedFloatToMono(sourcePointer: sourcePointer, frameCount: frameCount, channelCount: channelCount)
                     scratchFrames.withUnsafeBufferPointer { buffer in
                         if let baseAddress = buffer.baseAddress {
-                            MBITransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
+                            OBTransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
                         }
                     }
                 }
@@ -435,14 +459,14 @@ private final class CaptureContext {
                 convertNonInterleavedInt16ToMono(audioBuffers: audioBuffers, frameCount: frameCount, channelCount: channelCount)
                 scratchFrames.withUnsafeBufferPointer { buffer in
                     if let baseAddress = buffer.baseAddress {
-                        MBITransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
+                        OBTransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
                     }
                 }
             } else if let sourcePointer = audioBuffers[0].mData?.assumingMemoryBound(to: Int16.self) {
                 convertInterleavedInt16ToMono(sourcePointer: sourcePointer, frameCount: frameCount, channelCount: channelCount)
                 scratchFrames.withUnsafeBufferPointer { buffer in
                     if let baseAddress = buffer.baseAddress {
-                        MBITransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
+                        OBTransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
                     }
                 }
             }
@@ -453,6 +477,88 @@ private final class CaptureContext {
         if scratchFrames.count < frameCount {
             scratchFrames = Array(repeating: 0, count: frameCount)
         }
+    }
+
+    private func detectSpeech(audioBuffers: UnsafeMutableAudioBufferListPointer, frameCount: Int) {
+        guard speechDetectionEnabled, onSpeechDetected != nil else {
+            return
+        }
+
+        let now = Date()
+        guard now >= suppressSpeechDetectionUntil else {
+            return
+        }
+
+        let channelCount = max(Int(streamDescription.mChannelsPerFrame), 1)
+        let floatFormat = (streamDescription.mFormatFlags & kAudioFormatFlagIsFloat) != 0 && streamDescription.mBitsPerChannel == 32
+        let signedIntegerFormat = (streamDescription.mFormatFlags & kAudioFormatFlagIsSignedInteger) != 0 && streamDescription.mBitsPerChannel == 16
+        let nonInterleaved = (streamDescription.mFormatFlags & kAudioFormatFlagIsNonInterleaved) != 0
+
+        var totalSquared: Float = 0
+        var sampleCount = 0
+
+        if floatFormat {
+            if nonInterleaved {
+                for bufferIndex in 0..<min(channelCount, audioBuffers.count) {
+                    guard let sourcePointer = audioBuffers[bufferIndex].mData?.assumingMemoryBound(to: Float.self) else {
+                        continue
+                    }
+                    for frameIndex in 0..<frameCount {
+                        let sample = sourcePointer[frameIndex]
+                        totalSquared += sample * sample
+                    }
+                    sampleCount += frameCount
+                }
+            } else if let sourcePointer = audioBuffers[0].mData?.assumingMemoryBound(to: Float.self) {
+                let totalSampleCount = frameCount * channelCount
+                for sampleIndex in 0..<totalSampleCount {
+                    let sample = sourcePointer[sampleIndex]
+                    totalSquared += sample * sample
+                }
+                sampleCount = totalSampleCount
+            }
+        } else if signedIntegerFormat {
+            let scale: Float = 1.0 / 32768.0
+            if nonInterleaved {
+                for bufferIndex in 0..<min(channelCount, audioBuffers.count) {
+                    guard let sourcePointer = audioBuffers[bufferIndex].mData?.assumingMemoryBound(to: Int16.self) else {
+                        continue
+                    }
+                    for frameIndex in 0..<frameCount {
+                        let sample = Float(sourcePointer[frameIndex]) * scale
+                        totalSquared += sample * sample
+                    }
+                    sampleCount += frameCount
+                }
+            } else if let sourcePointer = audioBuffers[0].mData?.assumingMemoryBound(to: Int16.self) {
+                let totalSampleCount = frameCount * channelCount
+                for sampleIndex in 0..<totalSampleCount {
+                    let sample = Float(sourcePointer[sampleIndex]) * scale
+                    totalSquared += sample * sample
+                }
+                sampleCount = totalSampleCount
+            }
+        }
+
+        guard sampleCount > 0 else {
+            return
+        }
+
+        let rms = sqrt(totalSquared / Float(sampleCount))
+        if rms >= speechDetectionThreshold {
+            consecutiveBuffersOverThreshold += 1
+        } else {
+            consecutiveBuffersOverThreshold = 0
+            return
+        }
+
+        guard consecutiveBuffersOverThreshold >= requiredConsecutiveBuffers else {
+            return
+        }
+
+        consecutiveBuffersOverThreshold = 0
+        suppressSpeechDetectionUntil = now.addingTimeInterval(speechEventCooldown)
+        onSpeechDetected?(MicSpeechDetectionEvent(sourceDescription: "virtual mic proxy transport", level: rms))
     }
 
     private func convertInterleavedFloatToMono(

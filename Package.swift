@@ -2,14 +2,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "MediaButtonInterceptor",
+    name: "OnBlast",
     platforms: [
         .macOS(.v13)
     ],
     products: [
         .executable(
-            name: "MediaButtonInterceptor",
-            targets: ["MediaButtonInterceptor"]
+            name: "OnBlast",
+            targets: ["OnBlast"]
         ),
         .executable(
             name: "VirtualMicSelfTestHelper",
@@ -22,14 +22,14 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MBITransportShared",
+            name: "OBTransportShared",
             path: "VirtualAudioDevice/Shared",
             publicHeadersPath: "."
         ),
         .executableTarget(
-            name: "MediaButtonInterceptor",
-            dependencies: ["MBITransportShared"],
-            path: "Sources/MediaButtonInterceptor",
+            name: "OnBlast",
+            dependencies: ["OBTransportShared"],
+            path: "Sources/OnBlast",
             linkerSettings: [
                 .linkedFramework("AVFoundation"),
                 .linkedFramework("AudioToolbox"),
@@ -48,7 +48,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "VirtualMicCaptureHelper",
-            dependencies: ["MBITransportShared"],
+            dependencies: ["OBTransportShared"],
             path: "Sources/VirtualMicCaptureHelper",
             linkerSettings: [
                 .linkedFramework("AudioToolbox"),

@@ -5,15 +5,15 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>MediaButtonInterceptor</string>
+    <string>OnBlast</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>com.gieseking.MediaButtonInterceptor</string>
+    <string>com.gieseking.OnBlast</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>MediaButtonInterceptor</string>
+    <string>OnBlast</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -25,9 +25,9 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSBluetoothAlwaysUsageDescription</key>
-    <string>MediaButtonInterceptor needs Bluetooth access to discover your Bose headset and intercept its hands-free voice command before Siri opens.</string>
+    <string>OnBlast needs Bluetooth access to discover your Bose headset and intercept its hands-free voice command before Siri opens.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>MediaButtonInterceptor needs microphone permission so it can reflect and control input mute state.</string>
+    <string>OnBlast needs microphone permission so it can reflect and control input mute state.</string>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
 </dict>

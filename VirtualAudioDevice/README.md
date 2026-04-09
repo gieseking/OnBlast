@@ -1,10 +1,10 @@
-# MediaButton Virtual Audio Device
+# OnBlast Virtual Audio Device
 
 This folder contains the bundled virtual microphone backend used by the menu-bar app's `Virtual Mic Proxy` mute strategy.
 
 ## Goal
 
-The app keeps listening to a chosen physical microphone, but other apps talk to a separate virtual microphone device named `MediaButton Virtual Microphone`.
+The app keeps listening to a chosen physical microphone, but other apps talk to a separate virtual microphone device named `OnBlast Virtual Microphone`.
 
 When the helper is:
 
@@ -32,9 +32,9 @@ That design keeps speech detection available inside the helper even when headset
 The repo now has:
 
 - app-side configuration for `Device Mute` versus `Virtual Mic Proxy`
-- a generated Xcode project at `VirtualAudioDevice/MediaButtonVirtualAudioDevice.xcodeproj`
-- a buildable HAL plug-in that publishes an input-only `MediaButton Virtual Microphone` device
-- a buildable XPC service stub that produces `MediaButtonVirtualAudioXPC.xpc`
+- a generated Xcode project at `VirtualAudioDevice/OnBlastVirtualAudioDevice.xcodeproj`
+- a buildable HAL plug-in that publishes an input-only `OnBlast Virtual Microphone` device
+- a buildable XPC service stub that produces `OnBlastVirtualAudioXPC.xpc`
 - a shared-memory transport that lets the app write captured mono float audio into the HAL plug-in's input ring buffer
 - app-side AVFoundation capture that proxies the selected physical microphone into the virtual device when live and outputs silence when muted
 
@@ -56,8 +56,8 @@ Build the stubs:
 
 Artifacts are written under:
 
-- `VirtualAudioDevice/.derived/Build/Products/Debug/MediaButtonVirtualAudioPlugIn.driver`
-- `VirtualAudioDevice/.derived/Build/Products/Debug/MediaButtonVirtualAudioXPC.xpc`
+- `VirtualAudioDevice/.derived/Build/Products/Debug/OnBlastVirtualAudioPlugIn.driver`
+- `VirtualAudioDevice/.derived/Build/Products/Debug/OnBlastVirtualAudioXPC.xpc`
 
 ## Why This Exists
 

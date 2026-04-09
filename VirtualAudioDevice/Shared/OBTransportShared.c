@@ -1,4 +1,4 @@
-#include "MBITransportShared.h"
+#include "OBTransportShared.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -9,44 +9,44 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static const char *kMBITransportSharedMemoryPath = "/tmp/com.gieseking.MediaButtonInterceptor.VirtualMicTransport.shared";
+static const char *kMBITransportSharedMemoryPath = "/tmp/com.gieseking.OnBlast.VirtualMicTransport.shared";
 static const uint32_t kMBITransportDefaultSampleRate = 48000U;
 static const uint32_t kMBITransportDefaultBufferFrameSize = 512U;
 static const uint32_t kMBITransportChannelCount = 1U;
 
-const char *MBITransportSharedMemoryPath(void) {
+const char *OBTransportSharedMemoryPath(void) {
     return kMBITransportSharedMemoryPath;
 }
 
-size_t MBITransportSharedMemorySize(void) {
-    return sizeof(MBITransportSharedMemory);
+size_t OBTransportSharedMemorySize(void) {
+    return sizeof(OBTransportSharedMemory);
 }
 
-void MBITransportInitialize(MBITransportSharedMemory *sharedMemory) {
+void OBTransportInitialize(OBTransportSharedMemory *sharedMemory) {
     if (sharedMemory == NULL) {
         return;
     }
 
-    memset(sharedMemory, 0, sizeof(MBITransportSharedMemory));
-    sharedMemory->magic = MBITransportSharedMemoryMagic;
-    sharedMemory->version = MBITransportSharedMemoryVersion;
+    memset(sharedMemory, 0, sizeof(OBTransportSharedMemory));
+    sharedMemory->magic = OBTransportSharedMemoryMagic;
+    sharedMemory->version = OBTransportSharedMemoryVersion;
     sharedMemory->sampleRate = kMBITransportDefaultSampleRate;
     sharedMemory->bufferFrameSize = kMBITransportDefaultBufferFrameSize;
     sharedMemory->channelCount = kMBITransportChannelCount;
-    sharedMemory->ringFrameCapacity = MBITransportSharedMemoryRingFrameCapacity;
+    sharedMemory->ringFrameCapacity = OBTransportSharedMemoryRingFrameCapacity;
     atomic_store_explicit(&sharedMemory->writeFrameCounter, 0, memory_order_release);
 }
 
-static void MBITransportEnsureInitialized(MBITransportSharedMemory *sharedMemory) {
+static void OBTransportEnsureInitialized(OBTransportSharedMemory *sharedMemory) {
     if (sharedMemory == NULL) {
         return;
     }
 
-    if (sharedMemory->magic != MBITransportSharedMemoryMagic ||
-        sharedMemory->version != MBITransportSharedMemoryVersion ||
-        sharedMemory->ringFrameCapacity != MBITransportSharedMemoryRingFrameCapacity ||
+    if (sharedMemory->magic != OBTransportSharedMemoryMagic ||
+        sharedMemory->version != OBTransportSharedMemoryVersion ||
+        sharedMemory->ringFrameCapacity != OBTransportSharedMemoryRingFrameCapacity ||
         sharedMemory->channelCount != kMBITransportChannelCount) {
-        MBITransportInitialize(sharedMemory);
+        OBTransportInitialize(sharedMemory);
     } else {
         if (sharedMemory->sampleRate == 0) {
             sharedMemory->sampleRate = kMBITransportDefaultSampleRate;
@@ -57,7 +57,7 @@ static void MBITransportEnsureInitialized(MBITransportSharedMemory *sharedMemory
     }
 }
 
-int MBITransportOpenSharedMemory(int createIfNeeded, int *outFileDescriptor, MBITransportSharedMemory **outSharedMemory) {
+int OBTransportOpenSharedMemory(int createIfNeeded, int *outFileDescriptor, OBTransportSharedMemory **outSharedMemory) {
     if (outFileDescriptor == NULL || outSharedMemory == NULL) {
         return EINVAL;
     }
@@ -77,7 +77,7 @@ int MBITransportOpenSharedMemory(int createIfNeeded, int *outFileDescriptor, MBI
         return error;
     }
 
-    const size_t mappingSize = sizeof(MBITransportSharedMemory);
+    const size_t mappingSize = sizeof(OBTransportSharedMemory);
     if (createIfNeeded && ftruncate(fileDescriptor, (off_t)mappingSize) != 0) {
         const int error = errno;
         close(fileDescriptor);
@@ -103,9 +103,9 @@ int MBITransportOpenSharedMemory(int createIfNeeded, int *outFileDescriptor, MBI
         return error;
     }
 
-    MBITransportSharedMemory *sharedMemory = (MBITransportSharedMemory *)mappedMemory;
+    OBTransportSharedMemory *sharedMemory = (OBTransportSharedMemory *)mappedMemory;
     if (createIfNeeded) {
-        MBITransportEnsureInitialized(sharedMemory);
+        OBTransportEnsureInitialized(sharedMemory);
     }
 
     *outFileDescriptor = fileDescriptor;
@@ -113,9 +113,9 @@ int MBITransportOpenSharedMemory(int createIfNeeded, int *outFileDescriptor, MBI
     return 0;
 }
 
-void MBITransportCloseSharedMemory(int fileDescriptor, MBITransportSharedMemory *sharedMemory) {
+void OBTransportCloseSharedMemory(int fileDescriptor, OBTransportSharedMemory *sharedMemory) {
     if (sharedMemory != NULL) {
-        munmap(sharedMemory, sizeof(MBITransportSharedMemory));
+        munmap(sharedMemory, sizeof(OBTransportSharedMemory));
     }
 
     if (fileDescriptor >= 0) {
@@ -123,57 +123,57 @@ void MBITransportCloseSharedMemory(int fileDescriptor, MBITransportSharedMemory 
     }
 }
 
-void MBITransportSetMuted(MBITransportSharedMemory *sharedMemory, uint32_t muted) {
+void OBTransportSetMuted(OBTransportSharedMemory *sharedMemory, uint32_t muted) {
     if (sharedMemory == NULL) {
         return;
     }
 
-    MBITransportEnsureInitialized(sharedMemory);
+    OBTransportEnsureInitialized(sharedMemory);
     sharedMemory->muted = muted ? 1U : 0U;
 }
 
-void MBITransportSetSampleRate(MBITransportSharedMemory *sharedMemory, uint32_t sampleRate) {
+void OBTransportSetSampleRate(OBTransportSharedMemory *sharedMemory, uint32_t sampleRate) {
     if (sharedMemory == NULL) {
         return;
     }
 
-    MBITransportEnsureInitialized(sharedMemory);
+    OBTransportEnsureInitialized(sharedMemory);
     sharedMemory->sampleRate = sampleRate > 0 ? sampleRate : kMBITransportDefaultSampleRate;
 }
 
-void MBITransportSetBufferFrameSize(MBITransportSharedMemory *sharedMemory, uint32_t bufferFrameSize) {
+void OBTransportSetBufferFrameSize(OBTransportSharedMemory *sharedMemory, uint32_t bufferFrameSize) {
     if (sharedMemory == NULL) {
         return;
     }
 
-    MBITransportEnsureInitialized(sharedMemory);
+    OBTransportEnsureInitialized(sharedMemory);
     sharedMemory->bufferFrameSize = bufferFrameSize > 0 ? bufferFrameSize : kMBITransportDefaultBufferFrameSize;
 }
 
-void MBITransportSetRunning(MBITransportSharedMemory *sharedMemory, uint32_t running) {
+void OBTransportSetRunning(OBTransportSharedMemory *sharedMemory, uint32_t running) {
     if (sharedMemory == NULL) {
         return;
     }
 
-    MBITransportEnsureInitialized(sharedMemory);
+    OBTransportEnsureInitialized(sharedMemory);
     sharedMemory->running = running ? 1U : 0U;
 }
 
-void MBITransportSetSourceConnected(MBITransportSharedMemory *sharedMemory, uint32_t sourceConnected) {
+void OBTransportSetSourceConnected(OBTransportSharedMemory *sharedMemory, uint32_t sourceConnected) {
     if (sharedMemory == NULL) {
         return;
     }
 
-    MBITransportEnsureInitialized(sharedMemory);
+    OBTransportEnsureInitialized(sharedMemory);
     sharedMemory->sourceConnected = sourceConnected ? 1U : 0U;
 }
 
-void MBITransportWriteMonoFloat(MBITransportSharedMemory *sharedMemory, const float *frames, uint32_t frameCount) {
+void OBTransportWriteMonoFloat(OBTransportSharedMemory *sharedMemory, const float *frames, uint32_t frameCount) {
     if (sharedMemory == NULL || frames == NULL || frameCount == 0) {
         return;
     }
 
-    MBITransportEnsureInitialized(sharedMemory);
+    OBTransportEnsureInitialized(sharedMemory);
 
     const uint32_t capacity = sharedMemory->ringFrameCapacity;
     if (capacity == 0) {
@@ -195,7 +195,7 @@ void MBITransportWriteMonoFloat(MBITransportSharedMemory *sharedMemory, const fl
     atomic_store_explicit(&sharedMemory->writeFrameCounter, writeFrameCounter + frameCount, memory_order_release);
 }
 
-void MBITransportReadMonoFloat(MBITransportSharedMemory *sharedMemory, float *destination, uint32_t frameCount, uint64_t *ioReadFrameCounter) {
+void OBTransportReadMonoFloat(OBTransportSharedMemory *sharedMemory, float *destination, uint32_t frameCount, uint64_t *ioReadFrameCounter) {
     if (destination == NULL || frameCount == 0) {
         return;
     }
@@ -206,7 +206,7 @@ void MBITransportReadMonoFloat(MBITransportSharedMemory *sharedMemory, float *de
         return;
     }
 
-    MBITransportEnsureInitialized(sharedMemory);
+    OBTransportEnsureInitialized(sharedMemory);
     if (sharedMemory->muted || !sharedMemory->running || !sharedMemory->sourceConnected) {
         return;
     }
@@ -219,20 +219,18 @@ void MBITransportReadMonoFloat(MBITransportSharedMemory *sharedMemory, float *de
     const uint64_t writeFrameCounter = atomic_load_explicit(&sharedMemory->writeFrameCounter, memory_order_acquire);
     uint64_t readFrameCounter = *ioReadFrameCounter;
     const uint32_t negotiatedBufferFrameSize = sharedMemory->bufferFrameSize > 0 ? sharedMemory->bufferFrameSize : kMBITransportDefaultBufferFrameSize;
-    uint64_t targetLeadFrames = (uint64_t)negotiatedBufferFrameSize * 2U;
-    if (targetLeadFrames < frameCount) {
-        targetLeadFrames = frameCount;
+    uint64_t targetLeadFrames = (uint64_t)negotiatedBufferFrameSize * 3U;
+    if (targetLeadFrames < (uint64_t)frameCount * 2U) {
+        targetLeadFrames = (uint64_t)frameCount * 2U;
     }
     if (targetLeadFrames > capacity / 2U) {
         targetLeadFrames = capacity / 2U;
     }
 
+    const uint64_t maximumLeadFrames = targetLeadFrames * 2U;
+
     if (readFrameCounter == 0 || readFrameCounter > writeFrameCounter) {
-        if (writeFrameCounter > targetLeadFrames) {
-            readFrameCounter = writeFrameCounter - targetLeadFrames;
-        } else {
-            readFrameCounter = 0;
-        }
+        readFrameCounter = writeFrameCounter > targetLeadFrames ? (writeFrameCounter - targetLeadFrames) : 0;
     }
 
     if ((writeFrameCounter - readFrameCounter) > capacity) {
@@ -240,27 +238,22 @@ void MBITransportReadMonoFloat(MBITransportSharedMemory *sharedMemory, float *de
     }
 
     uint64_t availableFrames = writeFrameCounter - readFrameCounter;
+    if (availableFrames > maximumLeadFrames) {
+        readFrameCounter = writeFrameCounter > targetLeadFrames ? (writeFrameCounter - targetLeadFrames) : 0;
+        availableFrames = writeFrameCounter - readFrameCounter;
+    }
+
     if (availableFrames == 0) {
         *ioReadFrameCounter = readFrameCounter;
         return;
     }
 
-    if (availableFrames < frameCount && writeFrameCounter >= frameCount) {
-        readFrameCounter = writeFrameCounter - frameCount;
-        availableFrames = frameCount;
-    } else if (availableFrames > frameCount) {
-        const uint64_t desiredReadFrameCounter = writeFrameCounter > targetLeadFrames ? (writeFrameCounter - targetLeadFrames) : 0;
-        if (desiredReadFrameCounter > readFrameCounter) {
-            readFrameCounter = desiredReadFrameCounter;
-            availableFrames = writeFrameCounter - readFrameCounter;
-        }
-
-        if (availableFrames > frameCount) {
-            availableFrames = frameCount;
-        }
+    if (availableFrames < frameCount && writeFrameCounter > (targetLeadFrames + frameCount)) {
+        readFrameCounter = writeFrameCounter - targetLeadFrames;
+        availableFrames = writeFrameCounter - readFrameCounter;
     }
 
-    const uint32_t framesToCopy = (uint32_t)availableFrames;
+    const uint32_t framesToCopy = (uint32_t)(availableFrames > frameCount ? frameCount : availableFrames);
     for (uint32_t frameIndex = 0; frameIndex < framesToCopy; ++frameIndex) {
         const uint64_t absoluteFrameIndex = readFrameCounter + frameIndex;
         const uint32_t ringIndex = (uint32_t)(absoluteFrameIndex % capacity);

@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "28D044924E31B264899DB452"
-               BuildableName = "MediaButtonVirtualAudioPlugIn.bundle"
-               BlueprintName = "MediaButtonVirtualAudioPlugIn"
-               ReferencedContainer = "container:MediaButtonVirtualAudioDevice.xcodeproj">
+               BlueprintIdentifier = "CD0BD6D60FB8A840008098F7"
+               BuildableName = "OnBlastVirtualAudioPlugIn.bundle"
+               BlueprintName = "OnBlastVirtualAudioPlugIn"
+               ReferencedContainer = "container:OnBlastVirtualAudioDevice.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,10 +29,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FA3B2101F1159C4357BDB41C"
-               BuildableName = "MediaButtonVirtualAudioXPC.bundle"
-               BlueprintName = "MediaButtonVirtualAudioXPC"
-               ReferencedContainer = "container:MediaButtonVirtualAudioDevice.xcodeproj">
+               BlueprintIdentifier = "E9737E644DB1832CF3992BB5"
+               BuildableName = "OnBlastVirtualAudioXPC.bundle"
+               BlueprintName = "OnBlastVirtualAudioXPC"
+               ReferencedContainer = "container:OnBlastVirtualAudioDevice.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,10 +46,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "28D044924E31B264899DB452"
-            BuildableName = "MediaButtonVirtualAudioPlugIn.bundle"
-            BlueprintName = "MediaButtonVirtualAudioPlugIn"
-            ReferencedContainer = "container:MediaButtonVirtualAudioDevice.xcodeproj">
+            BlueprintIdentifier = "CD0BD6D60FB8A840008098F7"
+            BuildableName = "OnBlastVirtualAudioPlugIn.bundle"
+            BlueprintName = "OnBlastVirtualAudioPlugIn"
+            ReferencedContainer = "container:OnBlastVirtualAudioDevice.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -68,10 +68,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "28D044924E31B264899DB452"
-            BuildableName = "MediaButtonVirtualAudioPlugIn.bundle"
-            BlueprintName = "MediaButtonVirtualAudioPlugIn"
-            ReferencedContainer = "container:MediaButtonVirtualAudioDevice.xcodeproj">
+            BlueprintIdentifier = "CD0BD6D60FB8A840008098F7"
+            BuildableName = "OnBlastVirtualAudioPlugIn.bundle"
+            BlueprintName = "OnBlastVirtualAudioPlugIn"
+            ReferencedContainer = "container:OnBlastVirtualAudioDevice.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <CommandLineArguments>
@@ -86,10 +86,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "28D044924E31B264899DB452"
-            BuildableName = "MediaButtonVirtualAudioPlugIn.bundle"
-            BlueprintName = "MediaButtonVirtualAudioPlugIn"
-            ReferencedContainer = "container:MediaButtonVirtualAudioDevice.xcodeproj">
+            BlueprintIdentifier = "CD0BD6D60FB8A840008098F7"
+            BuildableName = "OnBlastVirtualAudioPlugIn.bundle"
+            BlueprintName = "OnBlastVirtualAudioPlugIn"
+            ReferencedContainer = "container:OnBlastVirtualAudioDevice.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </ProfileAction>

@@ -26,10 +26,10 @@ final class SettingsWindowCoordinator: NSObject, NSWindowDelegate {
             defer: false
         )
         window.contentViewController = hostingController
-        window.title = "MediaButtonInterceptor Settings"
+        window.title = "OnBlast Settings"
         window.isReleasedWhenClosed = false
         window.center()
-        window.setFrameAutosaveName("MediaButtonInterceptorSettingsWindow")
+        window.setFrameAutosaveName("OnBlastSettingsWindow")
         window.delegate = self
 
         self.window = window

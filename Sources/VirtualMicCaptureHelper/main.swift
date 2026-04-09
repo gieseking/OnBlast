@@ -1,6 +1,6 @@
 import CoreAudio
 import Foundation
-import MBITransportShared
+import OBTransportShared
 
 private enum ExitCode: Int32 {
     case success = 0
@@ -15,13 +15,13 @@ private struct Arguments {
 }
 
 private final class CaptureContext {
-    let sharedMemory: UnsafeMutablePointer<MBITransportSharedMemory>
+    let sharedMemory: UnsafeMutablePointer<OBTransportSharedMemory>
     let streamDescription: AudioStreamBasicDescription
     private var scratchFrames: [Float]
     private var hasLoggedFirstCallback = false
 
     init(
-        sharedMemory: UnsafeMutablePointer<MBITransportSharedMemory>,
+        sharedMemory: UnsafeMutablePointer<OBTransportSharedMemory>,
         streamDescription: AudioStreamBasicDescription,
         maximumFrameCount: Int
     ) {
@@ -54,8 +54,8 @@ private final class CaptureContext {
 
         ensureScratchCapacity(frameCount)
         writeInput(audioBuffers: audioBuffers, frameCount: frameCount)
-        MBITransportSetSourceConnected(sharedMemory, 1)
-        MBITransportSetRunning(sharedMemory, 1)
+        OBTransportSetSourceConnected(sharedMemory, 1)
+        OBTransportSetRunning(sharedMemory, 1)
         return noErr
     }
 
@@ -85,17 +85,17 @@ private final class CaptureContext {
                 convertNonInterleavedFloatToMono(audioBuffers: audioBuffers, frameCount: frameCount, channelCount: channelCount)
                 scratchFrames.withUnsafeBufferPointer { buffer in
                     if let baseAddress = buffer.baseAddress {
-                        MBITransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
+                        OBTransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
                     }
                 }
             } else if let sourcePointer = audioBuffers[0].mData?.assumingMemoryBound(to: Float.self) {
                 if channelCount <= 1 {
-                    MBITransportWriteMonoFloat(sharedMemory, sourcePointer, UInt32(frameCount))
+                    OBTransportWriteMonoFloat(sharedMemory, sourcePointer, UInt32(frameCount))
                 } else {
                     convertInterleavedFloatToMono(sourcePointer: sourcePointer, frameCount: frameCount, channelCount: channelCount)
                     scratchFrames.withUnsafeBufferPointer { buffer in
                         if let baseAddress = buffer.baseAddress {
-                            MBITransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
+                            OBTransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
                         }
                     }
                 }
@@ -108,14 +108,14 @@ private final class CaptureContext {
                 convertNonInterleavedInt16ToMono(audioBuffers: audioBuffers, frameCount: frameCount, channelCount: channelCount)
                 scratchFrames.withUnsafeBufferPointer { buffer in
                     if let baseAddress = buffer.baseAddress {
-                        MBITransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
+                        OBTransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
                     }
                 }
             } else if let sourcePointer = audioBuffers[0].mData?.assumingMemoryBound(to: Int16.self) {
                 convertInterleavedInt16ToMono(sourcePointer: sourcePointer, frameCount: frameCount, channelCount: channelCount)
                 scratchFrames.withUnsafeBufferPointer { buffer in
                     if let baseAddress = buffer.baseAddress {
-                        MBITransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
+                        OBTransportWriteMonoFloat(sharedMemory, baseAddress, UInt32(frameCount))
                     }
                 }
             }
@@ -352,16 +352,16 @@ private func main() -> ExitCode {
     }
 
     var fileDescriptor: Int32 = -1
-    var sharedMemoryPointer: UnsafeMutablePointer<MBITransportSharedMemory>?
-    let openStatus = MBITransportOpenSharedMemory(1, &fileDescriptor, &sharedMemoryPointer)
+    var sharedMemoryPointer: UnsafeMutablePointer<OBTransportSharedMemory>?
+    let openStatus = OBTransportOpenSharedMemory(1, &fileDescriptor, &sharedMemoryPointer)
     guard openStatus == 0, let sharedMemoryPointer else {
         logError("Virtual mic capture helper could not open shared memory (errno \(openStatus))")
         return .failure
     }
-    defer { MBITransportCloseSharedMemory(fileDescriptor, sharedMemoryPointer) }
+    defer { OBTransportCloseSharedMemory(fileDescriptor, sharedMemoryPointer) }
 
-    MBITransportSetRunning(sharedMemoryPointer, 0)
-    MBITransportSetSourceConnected(sharedMemoryPointer, 0)
+    OBTransportSetRunning(sharedMemoryPointer, 0)
+    OBTransportSetSourceConnected(sharedMemoryPointer, 0)
 
     guard let deviceID = resolveDeviceID(forUID: arguments.deviceUID) else {
         logError("Virtual mic capture helper could not resolve device UID \(arguments.deviceUID)")
@@ -385,7 +385,7 @@ private func main() -> ExitCode {
     )
     let bufferFrameSize = Int(readUInt32(deviceID: deviceID, selector: kAudioDevicePropertyBufferFrameSize) ?? 320)
 
-    MBITransportSetSampleRate(sharedMemoryPointer, UInt32(max(8_000, min(192_000, Int(sampleRate.rounded())))))
+    OBTransportSetSampleRate(sharedMemoryPointer, UInt32(max(8_000, min(192_000, Int(sampleRate.rounded())))))
     logLine(
         "Virtual mic capture helper device format: sampleRate=\(Int(streamDescription.mSampleRate.rounded())) channels=\(streamDescription.mChannelsPerFrame) bits=\(streamDescription.mBitsPerChannel) flags=\(streamDescription.mFormatFlags) bufferFrameSize=\(bufferFrameSize)"
     )
@@ -411,8 +411,8 @@ private func main() -> ExitCode {
     defer {
         AudioDeviceStop(deviceID, ioProcID)
         AudioDeviceDestroyIOProcID(deviceID, ioProcID)
-        MBITransportSetRunning(sharedMemoryPointer, 0)
-        MBITransportSetSourceConnected(sharedMemoryPointer, 0)
+        OBTransportSetRunning(sharedMemoryPointer, 0)
+        OBTransportSetSourceConnected(sharedMemoryPointer, 0)
     }
 
     let startStatus = AudioDeviceStart(deviceID, ioProcID)
@@ -421,7 +421,7 @@ private func main() -> ExitCode {
         return .failure
     }
 
-    MBITransportSetRunning(sharedMemoryPointer, 1)
+    OBTransportSetRunning(sharedMemoryPointer, 1)
     logLine("Virtual mic capture helper started from '\(arguments.deviceName)' using AudioDevice IOProc at \(Int(sampleRate.rounded())) Hz")
     RunLoop.current.run()
     return .success

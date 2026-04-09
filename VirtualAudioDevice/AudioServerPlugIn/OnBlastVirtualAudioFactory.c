@@ -8,8 +8,8 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "MBITransportShared.h"
-#include "MediaButtonVirtualAudioConstants.h"
+#include "OBTransportShared.h"
+#include "OnBlastVirtualAudioConstants.h"
 
 enum {
     kMBIObjectID_Device = 2,
@@ -25,16 +25,16 @@ enum {
 };
 
 static const Float64 kMBIDefaultSampleRate = 48000.0;
-static const char *kMBIDeviceUID = "com.gieseking.MediaButtonInterceptor.VirtualMicrophone.Device";
-static const char *kMBIDeviceModelUID = "com.gieseking.MediaButtonInterceptor.VirtualMicrophone.Model";
-static const char *kMBIPlugInName = "MediaButton Virtual Audio Plug-In";
-static const char *kMBIManufacturerName = "MediaButtonInterceptor";
-static const char *kMBIStreamName = "MediaButton Virtual Input Stream";
+static const char *kMBIDeviceUID = "com.gieseking.OnBlast.VirtualMicrophone.Device";
+static const char *kMBIDeviceModelUID = "com.gieseking.OnBlast.VirtualMicrophone.Model";
+static const char *kMBIPlugInName = "OnBlast Virtual Audio Plug-In";
+static const char *kMBIManufacturerName = "OnBlast";
+static const char *kMBIStreamName = "OnBlast Virtual Input Stream";
 
 typedef struct {
     AudioServerPlugInDriverInterface *mDriverInterface;
     atomic_uint mRefCount;
-} MBIDriverRef;
+} OBDriverRef;
 
 typedef struct {
     pthread_mutex_t mutex;
@@ -43,66 +43,66 @@ typedef struct {
     UInt64 clockSeed;
     UInt64 anchorHostTime;
     int sharedMemoryFileDescriptor;
-    MBITransportSharedMemory *sharedMemory;
+    OBTransportSharedMemory *sharedMemory;
     UInt64 readFrameCounter;
-} MBIDriverState;
+} OBDriverState;
 
-static HRESULT STDMETHODCALLTYPE MBI_QueryInterface(void *inDriver, REFIID inUUID, LPVOID *outInterface);
-static ULONG STDMETHODCALLTYPE MBI_AddRef(void *inDriver);
-static ULONG STDMETHODCALLTYPE MBI_Release(void *inDriver);
-static OSStatus STDMETHODCALLTYPE MBI_Initialize(AudioServerPlugInDriverRef inDriver, AudioServerPlugInHostRef inHost);
-static OSStatus STDMETHODCALLTYPE MBI_CreateDevice(AudioServerPlugInDriverRef inDriver, CFDictionaryRef inDescription, const AudioServerPlugInClientInfo *inClientInfo, AudioObjectID *outDeviceObjectID);
-static OSStatus STDMETHODCALLTYPE MBI_DestroyDevice(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID);
-static OSStatus STDMETHODCALLTYPE MBI_AddDeviceClient(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, const AudioServerPlugInClientInfo *inClientInfo);
-static OSStatus STDMETHODCALLTYPE MBI_RemoveDeviceClient(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, const AudioServerPlugInClientInfo *inClientInfo);
-static OSStatus STDMETHODCALLTYPE MBI_PerformDeviceConfigurationChange(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt64 inChangeAction, void *inChangeInfo);
-static OSStatus STDMETHODCALLTYPE MBI_AbortDeviceConfigurationChange(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt64 inChangeAction, void *inChangeInfo);
-static Boolean STDMETHODCALLTYPE MBI_HasProperty(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress);
-static OSStatus STDMETHODCALLTYPE MBI_IsPropertySettable(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, Boolean *outIsSettable);
-static OSStatus STDMETHODCALLTYPE MBI_GetPropertyDataSize(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 *outDataSize);
-static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 inDataSize, UInt32 *outDataSize, void *outData);
-static OSStatus STDMETHODCALLTYPE MBI_SetPropertyData(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 inDataSize, const void *inData);
-static OSStatus STDMETHODCALLTYPE MBI_StartIO(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID);
-static OSStatus STDMETHODCALLTYPE MBI_StopIO(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID);
-static OSStatus STDMETHODCALLTYPE MBI_GetZeroTimeStamp(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, Float64 *outSampleTime, UInt64 *outHostTime, UInt64 *outSeed);
-static OSStatus STDMETHODCALLTYPE MBI_WillDoIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, Boolean *outWillDo, Boolean *outWillDoInPlace);
-static OSStatus STDMETHODCALLTYPE MBI_BeginIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo);
-static OSStatus STDMETHODCALLTYPE MBI_DoIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, AudioObjectID inStreamObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo, void *ioMainBuffer, void *ioSecondaryBuffer);
-static OSStatus STDMETHODCALLTYPE MBI_EndIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo);
-static void MBI_EnsureSharedMemoryMappedLocked(void);
+static HRESULT STDMETHODCALLTYPE OB_QueryInterface(void *inDriver, REFIID inUUID, LPVOID *outInterface);
+static ULONG STDMETHODCALLTYPE OB_AddRef(void *inDriver);
+static ULONG STDMETHODCALLTYPE OB_Release(void *inDriver);
+static OSStatus STDMETHODCALLTYPE OB_Initialize(AudioServerPlugInDriverRef inDriver, AudioServerPlugInHostRef inHost);
+static OSStatus STDMETHODCALLTYPE OB_CreateDevice(AudioServerPlugInDriverRef inDriver, CFDictionaryRef inDescription, const AudioServerPlugInClientInfo *inClientInfo, AudioObjectID *outDeviceObjectID);
+static OSStatus STDMETHODCALLTYPE OB_DestroyDevice(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID);
+static OSStatus STDMETHODCALLTYPE OB_AddDeviceClient(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, const AudioServerPlugInClientInfo *inClientInfo);
+static OSStatus STDMETHODCALLTYPE OB_RemoveDeviceClient(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, const AudioServerPlugInClientInfo *inClientInfo);
+static OSStatus STDMETHODCALLTYPE OB_PerformDeviceConfigurationChange(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt64 inChangeAction, void *inChangeInfo);
+static OSStatus STDMETHODCALLTYPE OB_AbortDeviceConfigurationChange(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt64 inChangeAction, void *inChangeInfo);
+static Boolean STDMETHODCALLTYPE OB_HasProperty(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress);
+static OSStatus STDMETHODCALLTYPE OB_IsPropertySettable(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, Boolean *outIsSettable);
+static OSStatus STDMETHODCALLTYPE OB_GetPropertyDataSize(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 *outDataSize);
+static OSStatus STDMETHODCALLTYPE OB_GetPropertyData(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 inDataSize, UInt32 *outDataSize, void *outData);
+static OSStatus STDMETHODCALLTYPE OB_SetPropertyData(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 inDataSize, const void *inData);
+static OSStatus STDMETHODCALLTYPE OB_StartIO(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID);
+static OSStatus STDMETHODCALLTYPE OB_StopIO(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID);
+static OSStatus STDMETHODCALLTYPE OB_GetZeroTimeStamp(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, Float64 *outSampleTime, UInt64 *outHostTime, UInt64 *outSeed);
+static OSStatus STDMETHODCALLTYPE OB_WillDoIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, Boolean *outWillDo, Boolean *outWillDoInPlace);
+static OSStatus STDMETHODCALLTYPE OB_BeginIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo);
+static OSStatus STDMETHODCALLTYPE OB_DoIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, AudioObjectID inStreamObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo, void *ioMainBuffer, void *ioSecondaryBuffer);
+static OSStatus STDMETHODCALLTYPE OB_EndIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo);
+static void OB_EnsureSharedMemoryMappedLocked(void);
 
 static AudioServerPlugInDriverInterface gMBIDriverInterface = {
     NULL,
-    MBI_QueryInterface,
-    MBI_AddRef,
-    MBI_Release,
-    MBI_Initialize,
-    MBI_CreateDevice,
-    MBI_DestroyDevice,
-    MBI_AddDeviceClient,
-    MBI_RemoveDeviceClient,
-    MBI_PerformDeviceConfigurationChange,
-    MBI_AbortDeviceConfigurationChange,
-    MBI_HasProperty,
-    MBI_IsPropertySettable,
-    MBI_GetPropertyDataSize,
-    MBI_GetPropertyData,
-    MBI_SetPropertyData,
-    MBI_StartIO,
-    MBI_StopIO,
-    MBI_GetZeroTimeStamp,
-    MBI_WillDoIOOperation,
-    MBI_BeginIOOperation,
-    MBI_DoIOOperation,
-    MBI_EndIOOperation
+    OB_QueryInterface,
+    OB_AddRef,
+    OB_Release,
+    OB_Initialize,
+    OB_CreateDevice,
+    OB_DestroyDevice,
+    OB_AddDeviceClient,
+    OB_RemoveDeviceClient,
+    OB_PerformDeviceConfigurationChange,
+    OB_AbortDeviceConfigurationChange,
+    OB_HasProperty,
+    OB_IsPropertySettable,
+    OB_GetPropertyDataSize,
+    OB_GetPropertyData,
+    OB_SetPropertyData,
+    OB_StartIO,
+    OB_StopIO,
+    OB_GetZeroTimeStamp,
+    OB_WillDoIOOperation,
+    OB_BeginIOOperation,
+    OB_DoIOOperation,
+    OB_EndIOOperation
 };
 
-static MBIDriverRef gMBIDriverRef = {
+static OBDriverRef gMBIDriverRef = {
     &gMBIDriverInterface,
     ATOMIC_VAR_INIT(1)
 };
 
-static MBIDriverState gMBIDriverState = {
+static OBDriverState gMBIDriverState = {
     PTHREAD_MUTEX_INITIALIZER,
     NULL,
     0,
@@ -113,12 +113,12 @@ static MBIDriverState gMBIDriverState = {
     0
 };
 
-static Boolean MBI_UUIDsEqual(REFIID inUUID, CFUUIDRef inReferenceUUID) {
+static Boolean OB_UUIDsEqual(REFIID inUUID, CFUUIDRef inReferenceUUID) {
     const CFUUIDBytes referenceBytes = CFUUIDGetUUIDBytes(inReferenceUUID);
     return memcmp(&inUUID, &referenceBytes, sizeof(CFUUIDBytes)) == 0;
 }
 
-static UInt64 MBI_HostTicksPerSecond(void) {
+static UInt64 OB_HostTicksPerSecond(void) {
     static UInt64 cachedTicksPerSecond = 0;
     if (cachedTicksPerSecond == 0) {
         mach_timebase_info_data_t timebaseInfo;
@@ -129,7 +129,7 @@ static UInt64 MBI_HostTicksPerSecond(void) {
     return cachedTicksPerSecond;
 }
 
-static AudioClassID MBI_ClassIDForObject(AudioObjectID inObjectID) {
+static AudioClassID OB_ClassIDForObject(AudioObjectID inObjectID) {
     switch (inObjectID) {
         case kAudioObjectPlugInObject:
             return kAudioPlugInClassID;
@@ -142,7 +142,7 @@ static AudioClassID MBI_ClassIDForObject(AudioObjectID inObjectID) {
     }
 }
 
-static OSStatus MBI_ErrorForObject(AudioObjectID inObjectID) {
+static OSStatus OB_ErrorForObject(AudioObjectID inObjectID) {
     switch (inObjectID) {
         case kMBIObjectID_Device:
             return kAudioHardwareBadDeviceError;
@@ -153,20 +153,20 @@ static OSStatus MBI_ErrorForObject(AudioObjectID inObjectID) {
     }
 }
 
-static Boolean MBI_IsValidObjectID(AudioObjectID inObjectID) {
+static Boolean OB_IsValidObjectID(AudioObjectID inObjectID) {
     return inObjectID == kAudioObjectPlugInObject ||
         inObjectID == kMBIObjectID_Device ||
         inObjectID == kMBIObjectID_Stream_Input;
 }
 
-static Boolean MBI_ObjectMatchesClass(AudioObjectID inObjectID, UInt32 inQualifierDataSize, const void *inQualifierData) {
+static Boolean OB_ObjectMatchesClass(AudioObjectID inObjectID, UInt32 inQualifierDataSize, const void *inQualifierData) {
     if (inQualifierDataSize == 0 || inQualifierData == NULL) {
         return true;
     }
 
     const UInt32 qualifierCount = inQualifierDataSize / sizeof(AudioClassID);
     const AudioClassID *classIDs = (const AudioClassID *)inQualifierData;
-    const AudioClassID objectClassID = MBI_ClassIDForObject(inObjectID);
+    const AudioClassID objectClassID = OB_ClassIDForObject(inObjectID);
 
     for (UInt32 index = 0; index < qualifierCount; ++index) {
         const AudioClassID requestedClassID = classIDs[index];
@@ -180,17 +180,17 @@ static Boolean MBI_ObjectMatchesClass(AudioObjectID inObjectID, UInt32 inQualifi
     return false;
 }
 
-static CFStringRef MBI_CopyStaticString(CFStringRef inString) {
+static CFStringRef OB_CopyStaticString(CFStringRef inString) {
     return (CFStringRef)CFRetain(inString);
 }
 
-static CFStringRef MBI_CopyCString(const char *inString) {
+static CFStringRef OB_CopyCString(const char *inString) {
     return CFStringCreateWithCString(kCFAllocatorDefault, inString, kCFStringEncodingUTF8);
 }
 
-static Boolean MBI_CFStringEqualsCString(CFStringRef inString, const char *inCString) {
+static Boolean OB_CFStringEqualsCString(CFStringRef inString, const char *inCString) {
     Boolean isEqual = false;
-    CFStringRef comparisonString = MBI_CopyCString(inCString);
+    CFStringRef comparisonString = OB_CopyCString(inCString);
     if (inString != NULL && comparisonString != NULL) {
         isEqual = CFStringCompare(inString, comparisonString, 0) == kCFCompareEqualTo;
     }
@@ -200,8 +200,8 @@ static Boolean MBI_CFStringEqualsCString(CFStringRef inString, const char *inCSt
     return isEqual;
 }
 
-static Float64 MBI_CurrentSampleRateLocked(void) {
-    MBI_EnsureSharedMemoryMappedLocked();
+static Float64 OB_CurrentSampleRateLocked(void) {
+    OB_EnsureSharedMemoryMappedLocked();
     if (gMBIDriverState.sharedMemory != NULL && gMBIDriverState.sharedMemory->sampleRate >= 8000U) {
         return (Float64)gMBIDriverState.sharedMemory->sampleRate;
     }
@@ -209,16 +209,16 @@ static Float64 MBI_CurrentSampleRateLocked(void) {
     return kMBIDefaultSampleRate;
 }
 
-static Float64 MBI_CurrentSampleRate(void) {
+static Float64 OB_CurrentSampleRate(void) {
     Float64 sampleRate = 0;
     pthread_mutex_lock(&gMBIDriverState.mutex);
-    sampleRate = MBI_CurrentSampleRateLocked();
+    sampleRate = OB_CurrentSampleRateLocked();
     pthread_mutex_unlock(&gMBIDriverState.mutex);
     return sampleRate;
 }
 
-static UInt32 MBI_CurrentBufferFrameSizeLocked(void) {
-    MBI_EnsureSharedMemoryMappedLocked();
+static UInt32 OB_CurrentBufferFrameSizeLocked(void) {
+    OB_EnsureSharedMemoryMappedLocked();
     if (gMBIDriverState.sharedMemory != NULL && gMBIDriverState.sharedMemory->bufferFrameSize > 0) {
         return gMBIDriverState.sharedMemory->bufferFrameSize;
     }
@@ -226,15 +226,15 @@ static UInt32 MBI_CurrentBufferFrameSizeLocked(void) {
     return kMBIBufferFrameSize;
 }
 
-static UInt32 MBI_CurrentBufferFrameSize(void) {
+static UInt32 OB_CurrentBufferFrameSize(void) {
     UInt32 bufferFrameSize = 0;
     pthread_mutex_lock(&gMBIDriverState.mutex);
-    bufferFrameSize = MBI_CurrentBufferFrameSizeLocked();
+    bufferFrameSize = OB_CurrentBufferFrameSizeLocked();
     pthread_mutex_unlock(&gMBIDriverState.mutex);
     return bufferFrameSize;
 }
 
-static AudioStreamBasicDescription MBI_StreamFormat(Float64 inSampleRate) {
+static AudioStreamBasicDescription OB_StreamFormat(Float64 inSampleRate) {
     AudioStreamBasicDescription format;
     memset(&format, 0, sizeof(format));
     format.mSampleRate = inSampleRate;
@@ -248,36 +248,36 @@ static AudioStreamBasicDescription MBI_StreamFormat(Float64 inSampleRate) {
     return format;
 }
 
-static AudioStreamRangedDescription MBI_StreamRangedDescription(void) {
+static AudioStreamRangedDescription OB_StreamRangedDescription(void) {
     AudioStreamRangedDescription rangedDescription;
     memset(&rangedDescription, 0, sizeof(rangedDescription));
-    const Float64 sampleRate = MBI_CurrentSampleRate();
-    rangedDescription.mFormat = MBI_StreamFormat(sampleRate);
+    const Float64 sampleRate = OB_CurrentSampleRate();
+    rangedDescription.mFormat = OB_StreamFormat(sampleRate);
     rangedDescription.mSampleRateRange.mMinimum = sampleRate;
     rangedDescription.mSampleRateRange.mMaximum = sampleRate;
     return rangedDescription;
 }
 
-static void MBI_ResetTimelineLocked(void) {
+static void OB_ResetTimelineLocked(void) {
     gMBIDriverState.anchorHostTime = mach_absolute_time();
     gMBIDriverState.clockSeed += 1;
 }
 
-static void MBI_GetZeroTimeStampSnapshot(Float64 *outSampleTime, UInt64 *outHostTime, UInt64 *outSeed) {
+static void OB_GetZeroTimeStampSnapshot(Float64 *outSampleTime, UInt64 *outHostTime, UInt64 *outSeed) {
     UInt64 anchorHostTime = 0;
     UInt64 clockSeed = 0;
     Float64 sampleRate = kMBIDefaultSampleRate;
 
     pthread_mutex_lock(&gMBIDriverState.mutex);
     if (gMBIDriverState.anchorHostTime == 0) {
-        MBI_ResetTimelineLocked();
+        OB_ResetTimelineLocked();
     }
     anchorHostTime = gMBIDriverState.anchorHostTime;
     clockSeed = gMBIDriverState.clockSeed;
-    sampleRate = MBI_CurrentSampleRateLocked();
+    sampleRate = OB_CurrentSampleRateLocked();
     pthread_mutex_unlock(&gMBIDriverState.mutex);
 
-    const UInt64 hostTicksPerSecond = MBI_HostTicksPerSecond();
+    const UInt64 hostTicksPerSecond = OB_HostTicksPerSecond();
     const UInt64 now = mach_absolute_time();
     const long double elapsedHostTicks = (long double)(now - anchorHostTime);
     const long double elapsedFrames = (elapsedHostTicks * (long double)sampleRate) / (long double)hostTicksPerSecond;
@@ -290,7 +290,7 @@ static void MBI_GetZeroTimeStampSnapshot(Float64 *outSampleTime, UInt64 *outHost
     *outSeed = clockSeed;
 }
 
-static void MBI_NotifyPropertiesChanged(AudioObjectID inObjectID, UInt32 inNumberAddresses, const AudioObjectPropertyAddress *inAddresses) {
+static void OB_NotifyPropertiesChanged(AudioObjectID inObjectID, UInt32 inNumberAddresses, const AudioObjectPropertyAddress *inAddresses) {
     AudioServerPlugInHostRef host = NULL;
 
     pthread_mutex_lock(&gMBIDriverState.mutex);
@@ -302,20 +302,20 @@ static void MBI_NotifyPropertiesChanged(AudioObjectID inObjectID, UInt32 inNumbe
     }
 }
 
-static void MBI_EnsureSharedMemoryMappedLocked(void) {
+static void OB_EnsureSharedMemoryMappedLocked(void) {
     if (gMBIDriverState.sharedMemory != NULL) {
         return;
     }
 
     int fileDescriptor = -1;
-    MBITransportSharedMemory *sharedMemory = NULL;
-    if (MBITransportOpenSharedMemory(0, &fileDescriptor, &sharedMemory) == 0) {
+    OBTransportSharedMemory *sharedMemory = NULL;
+    if (OBTransportOpenSharedMemory(0, &fileDescriptor, &sharedMemory) == 0) {
         gMBIDriverState.sharedMemoryFileDescriptor = fileDescriptor;
         gMBIDriverState.sharedMemory = sharedMemory;
     }
 }
 
-static OSStatus MBI_WriteAudioObjectIDs(AudioObjectID *outData, UInt32 inDataSize, UInt32 *outDataSize, const AudioObjectID *inObjectIDs, UInt32 inObjectCount) {
+static OSStatus OB_WriteAudioObjectIDs(AudioObjectID *outData, UInt32 inDataSize, UInt32 *outDataSize, const AudioObjectID *inObjectIDs, UInt32 inObjectCount) {
     const UInt32 bytesToCopy = inObjectCount * (UInt32)sizeof(AudioObjectID);
     if (inDataSize < bytesToCopy) {
         return kAudioHardwareBadPropertySizeError;
@@ -329,26 +329,26 @@ static OSStatus MBI_WriteAudioObjectIDs(AudioObjectID *outData, UInt32 inDataSiz
     return kAudioHardwareNoError;
 }
 
-static Boolean MBI_IsInputScope(AudioObjectPropertyScope inScope) {
+static Boolean OB_IsInputScope(AudioObjectPropertyScope inScope) {
     return inScope == kAudioObjectPropertyScopeInput || inScope == kAudioObjectPropertyScopeGlobal;
 }
 
-static UInt32 MBI_StreamConfigurationDataSize(AudioObjectPropertyScope inScope) {
-    if (MBI_IsInputScope(inScope)) {
+static UInt32 OB_StreamConfigurationDataSize(AudioObjectPropertyScope inScope) {
+    if (OB_IsInputScope(inScope)) {
         return (UInt32)(offsetof(AudioBufferList, mBuffers) + sizeof(AudioBuffer));
     }
 
     return (UInt32)offsetof(AudioBufferList, mBuffers);
 }
 
-static OSStatus MBI_WriteStreamConfiguration(AudioObjectPropertyScope inScope, UInt32 inDataSize, UInt32 *outDataSize, void *outData) {
-    const UInt32 requiredDataSize = MBI_StreamConfigurationDataSize(inScope);
+static OSStatus OB_WriteStreamConfiguration(AudioObjectPropertyScope inScope, UInt32 inDataSize, UInt32 *outDataSize, void *outData) {
+    const UInt32 requiredDataSize = OB_StreamConfigurationDataSize(inScope);
     if (inDataSize < requiredDataSize) {
         return kAudioHardwareBadPropertySizeError;
     }
 
     AudioBufferList *bufferList = (AudioBufferList *)outData;
-    if (MBI_IsInputScope(inScope)) {
+    if (OB_IsInputScope(inScope)) {
         bufferList->mNumberBuffers = 1;
         bufferList->mBuffers[0].mNumberChannels = kMBIChannelCount;
         bufferList->mBuffers[0].mDataByteSize = 0;
@@ -361,7 +361,7 @@ static OSStatus MBI_WriteStreamConfiguration(AudioObjectPropertyScope inScope, U
     return kAudioHardwareNoError;
 }
 
-static Boolean MBI_DeviceHasProperty(const AudioObjectPropertyAddress *inAddress) {
+static Boolean OB_DeviceHasProperty(const AudioObjectPropertyAddress *inAddress) {
     switch (inAddress->mSelector) {
         case kAudioObjectPropertyBaseClass:
         case kAudioObjectPropertyClass:
@@ -406,7 +406,7 @@ static Boolean MBI_DeviceHasProperty(const AudioObjectPropertyAddress *inAddress
     }
 }
 
-static Boolean MBI_StreamHasProperty(const AudioObjectPropertyAddress *inAddress) {
+static Boolean OB_StreamHasProperty(const AudioObjectPropertyAddress *inAddress) {
     switch (inAddress->mSelector) {
         case kAudioObjectPropertyBaseClass:
         case kAudioObjectPropertyClass:
@@ -430,7 +430,7 @@ static Boolean MBI_StreamHasProperty(const AudioObjectPropertyAddress *inAddress
     }
 }
 
-static Boolean MBI_PlugInHasProperty(const AudioObjectPropertyAddress *inAddress) {
+static Boolean OB_PlugInHasProperty(const AudioObjectPropertyAddress *inAddress) {
     switch (inAddress->mSelector) {
         case kAudioObjectPropertyBaseClass:
         case kAudioObjectPropertyClass:
@@ -450,13 +450,13 @@ static Boolean MBI_PlugInHasProperty(const AudioObjectPropertyAddress *inAddress
     }
 }
 
-static HRESULT STDMETHODCALLTYPE MBI_QueryInterface(void *inDriver, REFIID inUUID, LPVOID *outInterface) {
+static HRESULT STDMETHODCALLTYPE OB_QueryInterface(void *inDriver, REFIID inUUID, LPVOID *outInterface) {
     if (outInterface == NULL) {
         return E_POINTER;
     }
 
-    if (MBI_UUIDsEqual(inUUID, IUnknownUUID) || MBI_UUIDsEqual(inUUID, kAudioServerPlugInDriverInterfaceUUID)) {
-        MBI_AddRef(inDriver);
+    if (OB_UUIDsEqual(inUUID, IUnknownUUID) || OB_UUIDsEqual(inUUID, kAudioServerPlugInDriverInterfaceUUID)) {
+        OB_AddRef(inDriver);
         *outInterface = inDriver;
         return S_OK;
     }
@@ -465,12 +465,12 @@ static HRESULT STDMETHODCALLTYPE MBI_QueryInterface(void *inDriver, REFIID inUUI
     return E_NOINTERFACE;
 }
 
-static ULONG STDMETHODCALLTYPE MBI_AddRef(void *inDriver) {
+static ULONG STDMETHODCALLTYPE OB_AddRef(void *inDriver) {
     (void)inDriver;
     return atomic_fetch_add_explicit(&gMBIDriverRef.mRefCount, 1, memory_order_relaxed) + 1;
 }
 
-static ULONG STDMETHODCALLTYPE MBI_Release(void *inDriver) {
+static ULONG STDMETHODCALLTYPE OB_Release(void *inDriver) {
     (void)inDriver;
     const UInt32 previousRefCount = atomic_fetch_sub_explicit(&gMBIDriverRef.mRefCount, 1, memory_order_relaxed);
     if (previousRefCount == 0) {
@@ -480,7 +480,7 @@ static ULONG STDMETHODCALLTYPE MBI_Release(void *inDriver) {
     return previousRefCount - 1;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_Initialize(AudioServerPlugInDriverRef inDriver, AudioServerPlugInHostRef inHost) {
+static OSStatus STDMETHODCALLTYPE OB_Initialize(AudioServerPlugInDriverRef inDriver, AudioServerPlugInHostRef inHost) {
     (void)inDriver;
 
     pthread_mutex_lock(&gMBIDriverState.mutex);
@@ -494,7 +494,7 @@ static OSStatus STDMETHODCALLTYPE MBI_Initialize(AudioServerPlugInDriverRef inDr
     return kAudioHardwareNoError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_CreateDevice(AudioServerPlugInDriverRef inDriver, CFDictionaryRef inDescription, const AudioServerPlugInClientInfo *inClientInfo, AudioObjectID *outDeviceObjectID) {
+static OSStatus STDMETHODCALLTYPE OB_CreateDevice(AudioServerPlugInDriverRef inDriver, CFDictionaryRef inDescription, const AudioServerPlugInClientInfo *inClientInfo, AudioObjectID *outDeviceObjectID) {
     (void)inDriver;
     (void)inDescription;
     (void)inClientInfo;
@@ -502,55 +502,55 @@ static OSStatus STDMETHODCALLTYPE MBI_CreateDevice(AudioServerPlugInDriverRef in
     return kAudioHardwareUnsupportedOperationError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_DestroyDevice(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID) {
+static OSStatus STDMETHODCALLTYPE OB_DestroyDevice(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID) {
     (void)inDriver;
     (void)inDeviceObjectID;
     return kAudioHardwareUnsupportedOperationError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_AddDeviceClient(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, const AudioServerPlugInClientInfo *inClientInfo) {
+static OSStatus STDMETHODCALLTYPE OB_AddDeviceClient(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, const AudioServerPlugInClientInfo *inClientInfo) {
     (void)inDriver;
     (void)inClientInfo;
     return inDeviceObjectID == kMBIObjectID_Device ? kAudioHardwareNoError : kAudioHardwareBadDeviceError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_RemoveDeviceClient(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, const AudioServerPlugInClientInfo *inClientInfo) {
+static OSStatus STDMETHODCALLTYPE OB_RemoveDeviceClient(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, const AudioServerPlugInClientInfo *inClientInfo) {
     (void)inDriver;
     (void)inClientInfo;
     return inDeviceObjectID == kMBIObjectID_Device ? kAudioHardwareNoError : kAudioHardwareBadDeviceError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_PerformDeviceConfigurationChange(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt64 inChangeAction, void *inChangeInfo) {
+static OSStatus STDMETHODCALLTYPE OB_PerformDeviceConfigurationChange(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt64 inChangeAction, void *inChangeInfo) {
     (void)inDriver;
     (void)inChangeAction;
     (void)inChangeInfo;
     return inDeviceObjectID == kMBIObjectID_Device ? kAudioHardwareNoError : kAudioHardwareBadDeviceError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_AbortDeviceConfigurationChange(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt64 inChangeAction, void *inChangeInfo) {
+static OSStatus STDMETHODCALLTYPE OB_AbortDeviceConfigurationChange(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt64 inChangeAction, void *inChangeInfo) {
     (void)inDriver;
     (void)inChangeAction;
     (void)inChangeInfo;
     return inDeviceObjectID == kMBIObjectID_Device ? kAudioHardwareNoError : kAudioHardwareBadDeviceError;
 }
 
-static Boolean STDMETHODCALLTYPE MBI_HasProperty(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress) {
+static Boolean STDMETHODCALLTYPE OB_HasProperty(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress) {
     (void)inDriver;
     (void)inClientProcessID;
 
     switch (inObjectID) {
         case kAudioObjectPlugInObject:
-            return MBI_PlugInHasProperty(inAddress);
+            return OB_PlugInHasProperty(inAddress);
         case kMBIObjectID_Device:
-            return MBI_DeviceHasProperty(inAddress);
+            return OB_DeviceHasProperty(inAddress);
         case kMBIObjectID_Stream_Input:
-            return MBI_StreamHasProperty(inAddress);
+            return OB_StreamHasProperty(inAddress);
         default:
             return false;
     }
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_IsPropertySettable(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, Boolean *outIsSettable) {
+static OSStatus STDMETHODCALLTYPE OB_IsPropertySettable(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, Boolean *outIsSettable) {
     (void)inDriver;
     (void)inClientProcessID;
 
@@ -558,11 +558,11 @@ static OSStatus STDMETHODCALLTYPE MBI_IsPropertySettable(AudioServerPlugInDriver
         return kAudioHardwareIllegalOperationError;
     }
 
-    if (!MBI_IsValidObjectID(inObjectID)) {
-        return MBI_ErrorForObject(inObjectID);
+    if (!OB_IsValidObjectID(inObjectID)) {
+        return OB_ErrorForObject(inObjectID);
     }
 
-    if (!MBI_HasProperty(inDriver, inObjectID, inClientProcessID, inAddress)) {
+    if (!OB_HasProperty(inDriver, inObjectID, inClientProcessID, inAddress)) {
         return kAudioHardwareUnknownPropertyError;
     }
 
@@ -570,7 +570,7 @@ static OSStatus STDMETHODCALLTYPE MBI_IsPropertySettable(AudioServerPlugInDriver
     return kAudioHardwareNoError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_GetPropertyDataSize(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 *outDataSize) {
+static OSStatus STDMETHODCALLTYPE OB_GetPropertyDataSize(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 *outDataSize) {
     (void)inDriver;
     (void)inClientProcessID;
 
@@ -578,11 +578,11 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyDataSize(AudioServerPlugInDrive
         return kAudioHardwareIllegalOperationError;
     }
 
-    if (!MBI_IsValidObjectID(inObjectID)) {
-        return MBI_ErrorForObject(inObjectID);
+    if (!OB_IsValidObjectID(inObjectID)) {
+        return OB_ErrorForObject(inObjectID);
     }
 
-    if (!MBI_HasProperty(inDriver, inObjectID, inClientProcessID, inAddress)) {
+    if (!OB_HasProperty(inDriver, inObjectID, inClientProcessID, inAddress)) {
         return kAudioHardwareUnknownPropertyError;
     }
 
@@ -606,7 +606,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyDataSize(AudioServerPlugInDrive
                     return kAudioHardwareNoError;
                 case kAudioObjectPropertyOwnedObjects:
                 case kAudioPlugInPropertyDeviceList:
-                    *outDataSize = MBI_ObjectMatchesClass(kMBIObjectID_Device, inQualifierDataSize, inQualifierData) ? sizeof(AudioObjectID) : 0;
+                    *outDataSize = OB_ObjectMatchesClass(kMBIObjectID_Device, inQualifierDataSize, inQualifierData) ? sizeof(AudioObjectID) : 0;
                     return kAudioHardwareNoError;
                 case kAudioPlugInPropertyTranslateUIDToDevice:
                     *outDataSize = sizeof(AudioObjectID);
@@ -655,7 +655,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyDataSize(AudioServerPlugInDrive
                     return kAudioHardwareNoError;
                 case kAudioObjectPropertyOwnedObjects:
                 case kAudioDevicePropertyStreams:
-                    *outDataSize = MBI_IsInputScope(inAddress->mScope) && MBI_ObjectMatchesClass(kMBIObjectID_Stream_Input, inQualifierDataSize, inQualifierData) ? sizeof(AudioObjectID) : 0;
+                    *outDataSize = OB_IsInputScope(inAddress->mScope) && OB_ObjectMatchesClass(kMBIObjectID_Stream_Input, inQualifierDataSize, inQualifierData) ? sizeof(AudioObjectID) : 0;
                     return kAudioHardwareNoError;
                 case kAudioDevicePropertyRelatedDevices:
                     *outDataSize = sizeof(AudioObjectID);
@@ -669,7 +669,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyDataSize(AudioServerPlugInDrive
                     *outDataSize = sizeof(AudioValueRange);
                     return kAudioHardwareNoError;
                 case kAudioDevicePropertyStreamConfiguration:
-                    *outDataSize = MBI_StreamConfigurationDataSize(inAddress->mScope);
+                    *outDataSize = OB_StreamConfigurationDataSize(inAddress->mScope);
                     return kAudioHardwareNoError;
                 default:
                     break;
@@ -715,7 +715,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyDataSize(AudioServerPlugInDrive
     return kAudioHardwareUnknownPropertyError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 inDataSize, UInt32 *outDataSize, void *outData) {
+static OSStatus STDMETHODCALLTYPE OB_GetPropertyData(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 inDataSize, UInt32 *outDataSize, void *outData) {
     (void)inDriver;
     (void)inClientProcessID;
 
@@ -723,11 +723,11 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
         return kAudioHardwareIllegalOperationError;
     }
 
-    if (!MBI_IsValidObjectID(inObjectID)) {
-        return MBI_ErrorForObject(inObjectID);
+    if (!OB_IsValidObjectID(inObjectID)) {
+        return OB_ErrorForObject(inObjectID);
     }
 
-    if (!MBI_HasProperty(inDriver, inObjectID, inClientProcessID, inAddress)) {
+    if (!OB_HasProperty(inDriver, inObjectID, inClientProcessID, inAddress)) {
         return kAudioHardwareUnknownPropertyError;
     }
 
@@ -763,7 +763,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyStaticString(CFSTR(MBIVirtualAudioPlugInBundleIdentifier));
+                    *(CFStringRef *)outData = OB_CopyStaticString(CFSTR(OBVirtualAudioPlugInBundleIdentifier));
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -771,7 +771,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyCString(kMBIPlugInName);
+                    *(CFStringRef *)outData = OB_CopyCString(kMBIPlugInName);
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -779,7 +779,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyCString(kMBIManufacturerName);
+                    *(CFStringRef *)outData = OB_CopyCString(kMBIManufacturerName);
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -789,9 +789,9 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
 
                 case kAudioObjectPropertyOwnedObjects:
                 case kAudioPlugInPropertyDeviceList: {
-                    if (MBI_ObjectMatchesClass(kMBIObjectID_Device, inQualifierDataSize, inQualifierData)) {
+                    if (OB_ObjectMatchesClass(kMBIObjectID_Device, inQualifierDataSize, inQualifierData)) {
                         const AudioObjectID objectID = kMBIObjectID_Device;
-                        return MBI_WriteAudioObjectIDs((AudioObjectID *)outData, inDataSize, outDataSize, &objectID, 1);
+                        return OB_WriteAudioObjectIDs((AudioObjectID *)outData, inDataSize, outDataSize, &objectID, 1);
                     }
                     *outDataSize = 0;
                     return kAudioHardwareNoError;
@@ -805,7 +805,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     AudioObjectID deviceObjectID = kAudioObjectUnknown;
                     if (inQualifierDataSize == sizeof(CFStringRef) && inQualifierData != NULL) {
                         CFStringRef requestedUID = *(const CFStringRef *)inQualifierData;
-                        if (MBI_CFStringEqualsCString(requestedUID, kMBIDeviceUID)) {
+                        if (OB_CFStringEqualsCString(requestedUID, kMBIDeviceUID)) {
                             deviceObjectID = kMBIObjectID_Device;
                         }
                     }
@@ -819,7 +819,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyStaticString(CFSTR("."));
+                    *(CFStringRef *)outData = OB_CopyStaticString(CFSTR("."));
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -859,7 +859,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyStaticString(CFSTR(MBIVirtualAudioPlugInBundleIdentifier));
+                    *(CFStringRef *)outData = OB_CopyStaticString(CFSTR(OBVirtualAudioPlugInBundleIdentifier));
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -868,7 +868,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyStaticString(CFSTR(MBIVirtualAudioDeviceName));
+                    *(CFStringRef *)outData = OB_CopyStaticString(CFSTR(OBVirtualAudioDeviceName));
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -876,15 +876,15 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyCString(kMBIManufacturerName);
+                    *(CFStringRef *)outData = OB_CopyCString(kMBIManufacturerName);
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
                 case kAudioObjectPropertyOwnedObjects:
                 case kAudioDevicePropertyStreams: {
-                    if (MBI_IsInputScope(inAddress->mScope) && MBI_ObjectMatchesClass(kMBIObjectID_Stream_Input, inQualifierDataSize, inQualifierData)) {
+                    if (OB_IsInputScope(inAddress->mScope) && OB_ObjectMatchesClass(kMBIObjectID_Stream_Input, inQualifierDataSize, inQualifierData)) {
                         const AudioObjectID objectID = kMBIObjectID_Stream_Input;
-                        return MBI_WriteAudioObjectIDs((AudioObjectID *)outData, inDataSize, outDataSize, &objectID, 1);
+                        return OB_WriteAudioObjectIDs((AudioObjectID *)outData, inDataSize, outDataSize, &objectID, 1);
                     }
                     *outDataSize = 0;
                     return kAudioHardwareNoError;
@@ -899,7 +899,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyStaticString(CFSTR("com.apple.audio.AudioMIDISetup"));
+                    *(CFStringRef *)outData = OB_CopyStaticString(CFSTR("com.apple.audio.AudioMIDISetup"));
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -907,7 +907,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyCString(kMBIDeviceUID);
+                    *(CFStringRef *)outData = OB_CopyCString(kMBIDeviceUID);
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -915,7 +915,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyCString(kMBIDeviceModelUID);
+                    *(CFStringRef *)outData = OB_CopyCString(kMBIDeviceModelUID);
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -929,7 +929,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
 
                 case kAudioDevicePropertyRelatedDevices: {
                     const AudioObjectID objectID = kMBIObjectID_Device;
-                    return MBI_WriteAudioObjectIDs((AudioObjectID *)outData, inDataSize, outDataSize, &objectID, 1);
+                    return OB_WriteAudioObjectIDs((AudioObjectID *)outData, inDataSize, outDataSize, &objectID, 1);
                 }
 
                 case kAudioDevicePropertyClockDomain:
@@ -967,7 +967,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(UInt32)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(UInt32 *)outData = MBI_IsInputScope(inAddress->mScope) ? 1U : 0U;
+                    *(UInt32 *)outData = OB_IsInputScope(inAddress->mScope) ? 1U : 0U;
                     *outDataSize = sizeof(UInt32);
                     return kAudioHardwareNoError;
 
@@ -1000,7 +1000,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(Float64)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(Float64 *)outData = MBI_CurrentSampleRate();
+                    *(Float64 *)outData = OB_CurrentSampleRate();
                     *outDataSize = sizeof(Float64);
                     return kAudioHardwareNoError;
 
@@ -1009,8 +1009,8 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(AudioValueRange)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    const Float64 sampleRate = MBI_CurrentSampleRate();
-                    const Float64 bufferFrameSize = (Float64)MBI_CurrentBufferFrameSize();
+                    const Float64 sampleRate = OB_CurrentSampleRate();
+                    const Float64 bufferFrameSize = (Float64)OB_CurrentBufferFrameSize();
                     ((AudioValueRange *)outData)->mMinimum =
                         inAddress->mSelector == kAudioDevicePropertyBufferFrameSizeRange ? bufferFrameSize : sampleRate;
                     ((AudioValueRange *)outData)->mMaximum =
@@ -1023,7 +1023,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(UInt32)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(UInt32 *)outData = MBI_CurrentBufferFrameSize();
+                    *(UInt32 *)outData = OB_CurrentBufferFrameSize();
                     *outDataSize = sizeof(UInt32);
                     return kAudioHardwareNoError;
 
@@ -1045,7 +1045,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     return kAudioHardwareNoError;
 
                 case kAudioDevicePropertyStreamConfiguration:
-                    return MBI_WriteStreamConfiguration(inAddress->mScope, inDataSize, outDataSize, outData);
+                    return OB_WriteStreamConfiguration(inAddress->mScope, inDataSize, outDataSize, outData);
 
                 case kAudioDevicePropertyZeroTimeStampPeriod:
                     if (inDataSize < sizeof(UInt32)) {
@@ -1106,7 +1106,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyStaticString(CFSTR(MBIVirtualAudioPlugInBundleIdentifier));
+                    *(CFStringRef *)outData = OB_CopyStaticString(CFSTR(OBVirtualAudioPlugInBundleIdentifier));
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -1114,7 +1114,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyCString(kMBIStreamName);
+                    *(CFStringRef *)outData = OB_CopyCString(kMBIStreamName);
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -1122,7 +1122,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(CFStringRef)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(CFStringRef *)outData = MBI_CopyCString(kMBIManufacturerName);
+                    *(CFStringRef *)outData = OB_CopyCString(kMBIManufacturerName);
                     *outDataSize = sizeof(CFStringRef);
                     return kAudioHardwareNoError;
 
@@ -1175,7 +1175,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(AudioStreamBasicDescription)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(AudioStreamBasicDescription *)outData = MBI_StreamFormat(MBI_CurrentSampleRate());
+                    *(AudioStreamBasicDescription *)outData = OB_StreamFormat(OB_CurrentSampleRate());
                     *outDataSize = sizeof(AudioStreamBasicDescription);
                     return kAudioHardwareNoError;
 
@@ -1184,7 +1184,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
                     if (inDataSize < sizeof(AudioStreamRangedDescription)) {
                         return kAudioHardwareBadPropertySizeError;
                     }
-                    *(AudioStreamRangedDescription *)outData = MBI_StreamRangedDescription();
+                    *(AudioStreamRangedDescription *)outData = OB_StreamRangedDescription();
                     *outDataSize = sizeof(AudioStreamRangedDescription);
                     return kAudioHardwareNoError;
 
@@ -1200,7 +1200,7 @@ static OSStatus STDMETHODCALLTYPE MBI_GetPropertyData(AudioServerPlugInDriverRef
     return kAudioHardwareUnknownPropertyError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_SetPropertyData(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 inDataSize, const void *inData) {
+static OSStatus STDMETHODCALLTYPE OB_SetPropertyData(AudioServerPlugInDriverRef inDriver, AudioObjectID inObjectID, pid_t inClientProcessID, const AudioObjectPropertyAddress *inAddress, UInt32 inQualifierDataSize, const void *inQualifierData, UInt32 inDataSize, const void *inData) {
     (void)inDriver;
     (void)inObjectID;
     (void)inClientProcessID;
@@ -1212,7 +1212,7 @@ static OSStatus STDMETHODCALLTYPE MBI_SetPropertyData(AudioServerPlugInDriverRef
     return kAudioHardwareUnsupportedOperationError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_StartIO(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID) {
+static OSStatus STDMETHODCALLTYPE OB_StartIO(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID) {
     (void)inDriver;
     (void)inClientID;
 
@@ -1222,9 +1222,9 @@ static OSStatus STDMETHODCALLTYPE MBI_StartIO(AudioServerPlugInDriverRef inDrive
 
     Boolean runningStateChanged = false;
     pthread_mutex_lock(&gMBIDriverState.mutex);
-    MBI_EnsureSharedMemoryMappedLocked();
+    OB_EnsureSharedMemoryMappedLocked();
     if (gMBIDriverState.ioClientCount == 0) {
-        MBI_ResetTimelineLocked();
+        OB_ResetTimelineLocked();
         gMBIDriverState.readFrameCounter = 0;
         runningStateChanged = true;
     }
@@ -1236,13 +1236,13 @@ static OSStatus STDMETHODCALLTYPE MBI_StartIO(AudioServerPlugInDriverRef inDrive
             { kAudioDevicePropertyDeviceIsRunning, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain },
             { kAudioDevicePropertyDeviceIsRunningSomewhere, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain }
         };
-        MBI_NotifyPropertiesChanged(kMBIObjectID_Device, 2, addresses);
+        OB_NotifyPropertiesChanged(kMBIObjectID_Device, 2, addresses);
     }
 
     return kAudioHardwareNoError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_StopIO(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID) {
+static OSStatus STDMETHODCALLTYPE OB_StopIO(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID) {
     (void)inDriver;
     (void)inClientID;
 
@@ -1266,13 +1266,13 @@ static OSStatus STDMETHODCALLTYPE MBI_StopIO(AudioServerPlugInDriverRef inDriver
             { kAudioDevicePropertyDeviceIsRunning, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain },
             { kAudioDevicePropertyDeviceIsRunningSomewhere, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain }
         };
-        MBI_NotifyPropertiesChanged(kMBIObjectID_Device, 2, addresses);
+        OB_NotifyPropertiesChanged(kMBIObjectID_Device, 2, addresses);
     }
 
     return kAudioHardwareNoError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_GetZeroTimeStamp(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, Float64 *outSampleTime, UInt64 *outHostTime, UInt64 *outSeed) {
+static OSStatus STDMETHODCALLTYPE OB_GetZeroTimeStamp(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, Float64 *outSampleTime, UInt64 *outHostTime, UInt64 *outSeed) {
     (void)inDriver;
     (void)inClientID;
 
@@ -1284,11 +1284,11 @@ static OSStatus STDMETHODCALLTYPE MBI_GetZeroTimeStamp(AudioServerPlugInDriverRe
         return kAudioHardwareIllegalOperationError;
     }
 
-    MBI_GetZeroTimeStampSnapshot(outSampleTime, outHostTime, outSeed);
+    OB_GetZeroTimeStampSnapshot(outSampleTime, outHostTime, outSeed);
     return kAudioHardwareNoError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_WillDoIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, Boolean *outWillDo, Boolean *outWillDoInPlace) {
+static OSStatus STDMETHODCALLTYPE OB_WillDoIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, Boolean *outWillDo, Boolean *outWillDoInPlace) {
     (void)inDriver;
     (void)inClientID;
 
@@ -1305,7 +1305,7 @@ static OSStatus STDMETHODCALLTYPE MBI_WillDoIOOperation(AudioServerPlugInDriverR
     return kAudioHardwareNoError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_BeginIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo) {
+static OSStatus STDMETHODCALLTYPE OB_BeginIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo) {
     (void)inDriver;
     (void)inClientID;
     (void)inOperationID;
@@ -1314,7 +1314,7 @@ static OSStatus STDMETHODCALLTYPE MBI_BeginIOOperation(AudioServerPlugInDriverRe
     return inDeviceObjectID == kMBIObjectID_Device ? kAudioHardwareNoError : kAudioHardwareBadDeviceError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_DoIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, AudioObjectID inStreamObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo, void *ioMainBuffer, void *ioSecondaryBuffer) {
+static OSStatus STDMETHODCALLTYPE OB_DoIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, AudioObjectID inStreamObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo, void *ioMainBuffer, void *ioSecondaryBuffer) {
     (void)inDriver;
     (void)inClientID;
     (void)inIOCycleInfo;
@@ -1334,8 +1334,8 @@ static OSStatus STDMETHODCALLTYPE MBI_DoIOOperation(AudioServerPlugInDriverRef i
 
     if (ioMainBuffer != NULL) {
         pthread_mutex_lock(&gMBIDriverState.mutex);
-        MBI_EnsureSharedMemoryMappedLocked();
-        MBITransportReadMonoFloat(
+        OB_EnsureSharedMemoryMappedLocked();
+        OBTransportReadMonoFloat(
             gMBIDriverState.sharedMemory,
             (float *)ioMainBuffer,
             inIOBufferFrameSize,
@@ -1347,7 +1347,7 @@ static OSStatus STDMETHODCALLTYPE MBI_DoIOOperation(AudioServerPlugInDriverRef i
     return kAudioHardwareNoError;
 }
 
-static OSStatus STDMETHODCALLTYPE MBI_EndIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo) {
+static OSStatus STDMETHODCALLTYPE OB_EndIOOperation(AudioServerPlugInDriverRef inDriver, AudioObjectID inDeviceObjectID, UInt32 inClientID, UInt32 inOperationID, UInt32 inIOBufferFrameSize, const AudioServerPlugInIOCycleInfo *inIOCycleInfo) {
     (void)inDriver;
     (void)inClientID;
     (void)inOperationID;
@@ -1356,17 +1356,17 @@ static OSStatus STDMETHODCALLTYPE MBI_EndIOOperation(AudioServerPlugInDriverRef 
     return inDeviceObjectID == kMBIObjectID_Device ? kAudioHardwareNoError : kAudioHardwareBadDeviceError;
 }
 
-void *MediaButtonVirtualAudioFactory(CFAllocatorRef allocator, CFUUIDRef requestedTypeUUID) {
+void *OnBlastVirtualAudioFactory(CFAllocatorRef allocator, CFUUIDRef requestedTypeUUID) {
     (void)allocator;
 
     if (requestedTypeUUID == NULL || !CFEqual(requestedTypeUUID, kAudioServerPlugInTypeUUID)) {
         return NULL;
     }
 
-    MBI_AddRef(&gMBIDriverRef);
+    OB_AddRef(&gMBIDriverRef);
     return &gMBIDriverRef;
 }
 
 void *AudioServerPlugInMain(CFAllocatorRef allocator, CFUUIDRef requestedTypeUUID) {
-    return MediaButtonVirtualAudioFactory(allocator, requestedTypeUUID);
+    return OnBlastVirtualAudioFactory(allocator, requestedTypeUUID);
 }

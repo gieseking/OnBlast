@@ -23,6 +23,11 @@ final class VirtualMicProxyController: MicMuteControlling {
             transportController.onLog = onLog
         }
     }
+    var onSpeechDetected: ((MicSpeechDetectionEvent) -> Void)? {
+        didSet {
+            transportController.onSpeechDetected = onSpeechDetected
+        }
+    }
 
     private let transportController = VirtualMicTransportController()
     private var selectedInputDeviceUID = ""
@@ -37,6 +42,7 @@ final class VirtualMicProxyController: MicMuteControlling {
         selectedInputDeviceUID: String,
         selectedInputDeviceName: String,
         selectedInputSampleRate: Double,
+        speechDetectionEnabled: Bool,
         bundledVirtualDeviceUID: String,
         virtualDeviceDetected: Bool
     ) {
@@ -51,6 +57,7 @@ final class VirtualMicProxyController: MicMuteControlling {
             selectedInputDeviceUID: selectedInputDeviceUID,
             selectedInputDeviceName: selectedInputDeviceName,
             selectedInputSampleRate: selectedInputSampleRate,
+            speechDetectionEnabled: speechDetectionEnabled,
             virtualDeviceDetected: virtualDeviceDetected,
             muted: muted
         )
@@ -62,6 +69,14 @@ final class VirtualMicProxyController: MicMuteControlling {
         }
 
         return muted ? .muted : .live
+    }
+
+    func setMuted(_ muted: Bool) throws {
+        self.muted = muted
+        transportController.setMuted(muted)
+        if isReady {
+            onLog?("Virtual mic proxy mute state restored to \(muted ? "muted" : "live")")
+        }
     }
 
     @discardableResult
@@ -78,10 +93,10 @@ final class VirtualMicProxyController: MicMuteControlling {
             throw VirtualMicProxyError.backendNotReady
         }
 
-        muted.toggle()
-        transportController.setMuted(muted)
-        onLog?("Virtual mic proxy mute state changed to \(muted ? "muted" : "live")")
-        return muted
+        let nextMuted = !muted
+        try setMuted(nextMuted)
+        onLog?("Virtual mic proxy mute state changed to \(nextMuted ? "muted" : "live")")
+        return nextMuted
     }
 
     var statusDescription: String {

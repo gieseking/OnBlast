@@ -8,7 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct MediaButtonInterceptorApp: App {
+struct OnBlastApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model = AppModel()
 
@@ -31,7 +31,7 @@ private struct StatusMenuView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("MediaButtonInterceptor")
+            Text("OnBlast")
                 .font(.headline)
             Text("Mic: \(model.micState.displayName)")
                 .foregroundStyle(.secondary)

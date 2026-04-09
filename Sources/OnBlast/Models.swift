@@ -142,6 +142,7 @@ enum InputSourceRoute: String {
     case bluetoothHandsFree = "Bluetooth HFP"
     case unifiedSystemVoiceCommand = "System Voice Log"
     case unifiedSystemAction = "System Action Log"
+    case outputVolumeFallback = "Output Volume"
     case siriActivation = "Siri Fallback"
 }
 
@@ -196,9 +197,11 @@ struct AppConfiguration: Codable {
     var enablePrivateMediaRemoteBridge: Bool = false
     var enableBluetoothHandsFreeMonitor: Bool = true
     var enableSiriActivationFallback: Bool = true
+    var enableOutputVolumeFallback: Bool = false
     var enableSpokenAnnouncements: Bool = true
     var enableMutedSpeechReminder: Bool = true
     var micMuteBackend: MicMuteBackend = .deviceMute
+    var restoreMutedStateOnLaunch: Bool = false
     var virtualMicInputDeviceUID: String = ""
     var virtualMicOutputDeviceUID: String = ""
     var spokenAnnouncementVolume: Double = 1.0
@@ -208,10 +211,10 @@ struct AppConfiguration: Codable {
     var liveSoundFilePath: String = ""
     var consumeInterceptedEvents: Bool = true
     var boseNameFilter: String = "Bose"
-    var menuBarTitle: String = "MBI"
+    var menuBarTitle: String = "OB"
     private var mappings: [String: ButtonAction] = AppConfiguration.defaultMappings
 
-    static let storageKey = "com.gieseking.MediaButtonInterceptor.configuration"
+    static let storageKey = "com.gieseking.OnBlast.configuration"
 
     static let defaultMappings: [String: ButtonAction] = [
         ButtonIdentifier.voiceCommand.rawValue: .toggleMicMute,
@@ -259,9 +262,11 @@ struct AppConfiguration: Codable {
         case enablePrivateMediaRemoteBridge
         case enableBluetoothHandsFreeMonitor
         case enableSiriActivationFallback
+        case enableOutputVolumeFallback
         case enableSpokenAnnouncements
         case enableMutedSpeechReminder
         case micMuteBackend
+        case restoreMutedStateOnLaunch
         case virtualMicInputDeviceUID
         case virtualMicOutputDeviceUID
         case spokenAnnouncementVolume
@@ -285,9 +290,11 @@ struct AppConfiguration: Codable {
         enablePrivateMediaRemoteBridge = try container.decodeIfPresent(Bool.self, forKey: .enablePrivateMediaRemoteBridge) ?? false
         enableBluetoothHandsFreeMonitor = try container.decodeIfPresent(Bool.self, forKey: .enableBluetoothHandsFreeMonitor) ?? true
         enableSiriActivationFallback = try container.decodeIfPresent(Bool.self, forKey: .enableSiriActivationFallback) ?? true
+        enableOutputVolumeFallback = try container.decodeIfPresent(Bool.self, forKey: .enableOutputVolumeFallback) ?? false
         enableSpokenAnnouncements = try container.decodeIfPresent(Bool.self, forKey: .enableSpokenAnnouncements) ?? true
         enableMutedSpeechReminder = try container.decodeIfPresent(Bool.self, forKey: .enableMutedSpeechReminder) ?? true
         micMuteBackend = try container.decodeIfPresent(MicMuteBackend.self, forKey: .micMuteBackend) ?? .deviceMute
+        restoreMutedStateOnLaunch = try container.decodeIfPresent(Bool.self, forKey: .restoreMutedStateOnLaunch) ?? false
         virtualMicInputDeviceUID = try container.decodeIfPresent(String.self, forKey: .virtualMicInputDeviceUID) ?? ""
         virtualMicOutputDeviceUID = try container.decodeIfPresent(String.self, forKey: .virtualMicOutputDeviceUID) ?? ""
         spokenAnnouncementVolume = min(max(try container.decodeIfPresent(Double.self, forKey: .spokenAnnouncementVolume) ?? 1.0, 0.0), 1.0)
@@ -297,7 +304,7 @@ struct AppConfiguration: Codable {
         liveSoundFilePath = try container.decodeIfPresent(String.self, forKey: .liveSoundFilePath) ?? ""
         consumeInterceptedEvents = try container.decodeIfPresent(Bool.self, forKey: .consumeInterceptedEvents) ?? true
         boseNameFilter = try container.decodeIfPresent(String.self, forKey: .boseNameFilter) ?? "Bose"
-        menuBarTitle = try container.decodeIfPresent(String.self, forKey: .menuBarTitle) ?? "MBI"
+        menuBarTitle = try container.decodeIfPresent(String.self, forKey: .menuBarTitle) ?? "OB"
         mappings = try container.decodeIfPresent([String: ButtonAction].self, forKey: .mappings) ?? AppConfiguration.defaultMappings
     }
 }

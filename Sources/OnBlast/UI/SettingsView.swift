@@ -57,9 +57,13 @@ struct SettingsView: View {
                 Toggle("Enable experimental MediaRemote bridge", isOn: $model.config.enablePrivateMediaRemoteBridge)
                 Toggle("Enable experimental Bluetooth HFP intercept", isOn: $model.config.enableBluetoothHandsFreeMonitor)
                 Toggle("Use Siri activation fallback for center button", isOn: $model.config.enableSiriActivationFallback)
+                Toggle("Enable experimental output-volume fallback for volume buttons", isOn: $model.config.enableOutputVolumeFallback)
                 TextField("Bose device name filter", text: $model.config.boseNameFilter)
                 TextField("Menu bar title", text: $model.config.menuBarTitle)
                 Text("The Bluetooth HFP intercept tries to catch the headset's voice-recognition command before Siri launches. The Siri fallback stays available as a last resort.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("The output-volume fallback is downstream and cannot reliably distinguish headset volume buttons from changes made with the mouse or keyboard. Leave it off unless you are explicitly testing that tradeoff.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

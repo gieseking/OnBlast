@@ -12,4 +12,4 @@ fi
 
 xcodegen --spec "$SPEC_PATH" --project "$PROJECT_DIR"
 
-echo "Generated $PROJECT_DIR/MediaButtonVirtualAudioDevice.xcodeproj"
+echo "Generated $PROJECT_DIR/OnBlastVirtualAudioDevice.xcodeproj"

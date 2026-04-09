@@ -21,8 +21,9 @@ final class VirtualMicDriverInstaller: @unchecked Sendable {
     var onLog: ((String) -> Void)?
 
     private let fileManager = FileManager.default
-    private let driverBundleName = "MediaButtonVirtualAudioPlugIn.driver"
-    private let xpcBundleName = "MediaButtonVirtualAudioXPC.xpc"
+    private let driverBundleName = "OnBlastVirtualAudioPlugIn.driver"
+    private let xpcBundleName = "OnBlastVirtualAudioXPC.xpc"
+    private let legacyDriverBundleNames = ["MediaButtonVirtualAudioPlugIn.driver"]
     private let driverInstallRoot = URL(fileURLWithPath: "/Library/Audio/Plug-Ins/HAL", isDirectory: true)
 
     var bundledDriverURL: URL? {
@@ -84,11 +85,15 @@ final class VirtualMicDriverInstaller: @unchecked Sendable {
         bundledXPCURL: URL?,
         installedDriverURL: URL
     ) -> String {
-        var commands = [
-            "/bin/mkdir -p \(shellQuoted(driverInstallRoot.path))",
-            "/bin/rm -rf \(shellQuoted(installedDriverURL.path))",
-            "/usr/bin/ditto \(shellQuoted(bundledDriverURL.path)) \(shellQuoted(installedDriverURL.path))"
-        ]
+        var commands = ["/bin/mkdir -p \(shellQuoted(driverInstallRoot.path))"]
+
+        for legacyDriverBundleName in legacyDriverBundleNames {
+            let legacyDriverURL = driverInstallRoot.appendingPathComponent(legacyDriverBundleName, isDirectory: true)
+            commands.append("/bin/rm -rf \(shellQuoted(legacyDriverURL.path))")
+        }
+
+        commands.append("/bin/rm -rf \(shellQuoted(installedDriverURL.path))")
+        commands.append("/usr/bin/ditto \(shellQuoted(bundledDriverURL.path)) \(shellQuoted(installedDriverURL.path))")
 
         if let bundledXPCURL, fileManager.fileExists(atPath: bundledXPCURL.path) {
             let xpcInstallDirectory = installedDriverURL

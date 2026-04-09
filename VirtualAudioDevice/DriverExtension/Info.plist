@@ -5,13 +5,13 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleExecutable</key>
-    <string>MediaButtonVirtualAudioDriverExtension</string>
+    <string>OnBlastVirtualAudioDriverExtension</string>
     <key>CFBundleIdentifier</key>
-    <string>com.gieseking.MediaButtonInterceptor.VirtualAudioDriverExtension</string>
+    <string>com.gieseking.OnBlast.VirtualAudioDriverExtension</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>MediaButtonVirtualAudioDriverExtension</string>
+    <string>OnBlastVirtualAudioDriverExtension</string>
     <key>CFBundlePackageType</key>
     <string>DEXT</string>
     <key>CFBundleShortVersionString</key>
@@ -23,7 +23,7 @@
         <key>NSExtensionPointIdentifier</key>
         <string>com.apple.system_extension.driver_extension</string>
         <key>NSExtensionPrincipalClass</key>
-        <string>MediaButtonVirtualAudioDriverExtension</string>
+        <string>OnBlastVirtualAudioDriverExtension</string>
     </dict>
 </dict>
 </plist>

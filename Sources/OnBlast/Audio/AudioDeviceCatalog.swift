@@ -2,7 +2,7 @@ import CoreAudio
 import Foundation
 
 final class AudioDeviceCatalog: @unchecked Sendable {
-    static let bundledVirtualMicDeviceName = "MediaButton Virtual Microphone"
+    static let bundledVirtualMicDeviceName = "OnBlast Virtual Microphone"
 
     func allDevices() -> [AudioDeviceOption] {
         deviceIDs().compactMap { option(for: $0) }.sorted { lhs, rhs in

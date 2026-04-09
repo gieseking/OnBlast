@@ -27,7 +27,7 @@ final class VirtualMicSelfTestController: NSObject, @unchecked Sendable {
         }
 
         let outputURL = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("MediaButtonInterceptor-VirtualMicSelfTest-\(UUID().uuidString).caf")
+            .appendingPathComponent("OnBlast-VirtualMicSelfTest-\(UUID().uuidString).caf")
 
         cleanup()
         isBusy = true
