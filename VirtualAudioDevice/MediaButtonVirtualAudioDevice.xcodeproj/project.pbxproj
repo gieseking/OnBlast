@@ -1,0 +1,443 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AE1A21D0E5A49B410CD370AD /* MediaButtonVirtualAudioFactory.c in Sources */ = {isa = PBXBuildFile; fileRef = 4049AC344405457CE2F08BB0 /* MediaButtonVirtualAudioFactory.c */; };
+		AF58F565024F27C1F95FF616 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = C093230D922FE9F115BF0B10 /* main.swift */; };
+		B24B8591F22164A6C467D214 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 78C480D34B263F75CFC9622F /* CoreFoundation.framework */; };
+		B92829C3DCBF66B8152B6BB4 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D9F9B45A0D9A8CC496E0D341 /* Foundation.framework */; };
+		BDF57F4768CE3D5A4B1F4D63 /* MBITransportShared.c in Sources */ = {isa = PBXBuildFile; fileRef = E083E742E4ACCC4B27D239E4 /* MBITransportShared.c */; };
+		EAC813B18E25F5AAC4D55985 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EF5B5C166742CC5117282084 /* CoreAudio.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		078E5970ADFC61F81F17CAA3 /* MediaButtonVirtualAudioConstants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaButtonVirtualAudioConstants.h; sourceTree = "<group>"; };
+		4049AC344405457CE2F08BB0 /* MediaButtonVirtualAudioFactory.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = MediaButtonVirtualAudioFactory.c; sourceTree = "<group>"; };
+		5C71501319137DFA35F2A460 /* MBITransportShared.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MBITransportShared.h; sourceTree = "<group>"; };
+		6EA8B977DDE36074DE4E8AA1 /* MediaButtonVirtualAudioXPC.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MediaButtonVirtualAudioXPC.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
+		78C480D34B263F75CFC9622F /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		B9C4F22E0C57EFAE421BD18E /* MediaButtonVirtualAudioPlugIn.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MediaButtonVirtualAudioPlugIn.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
+		C093230D922FE9F115BF0B10 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		D9F9B45A0D9A8CC496E0D341 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		E083E742E4ACCC4B27D239E4 /* MBITransportShared.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = MBITransportShared.c; sourceTree = "<group>"; };
+		EF5B5C166742CC5117282084 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2B5674AF3BFD055FC9379836 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B92829C3DCBF66B8152B6BB4 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E4ADB3EC9E1D6EBD90799861 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EAC813B18E25F5AAC4D55985 /* CoreAudio.framework in Frameworks */,
+				B24B8591F22164A6C467D214 /* CoreFoundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2AA5315F8C5454272718A876 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				E083E742E4ACCC4B27D239E4 /* MBITransportShared.c */,
+				5C71501319137DFA35F2A460 /* MBITransportShared.h */,
+				078E5970ADFC61F81F17CAA3 /* MediaButtonVirtualAudioConstants.h */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		4E32EBC33FA98F87DD2E4E3B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B9C4F22E0C57EFAE421BD18E /* MediaButtonVirtualAudioPlugIn.bundle */,
+				6EA8B977DDE36074DE4E8AA1 /* MediaButtonVirtualAudioXPC.bundle */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		82975566CC4A37FF814A45B6 /* AudioServerPlugIn */ = {
+			isa = PBXGroup;
+			children = (
+				4049AC344405457CE2F08BB0 /* MediaButtonVirtualAudioFactory.c */,
+			);
+			path = AudioServerPlugIn;
+			sourceTree = "<group>";
+		};
+		AE85771AB17FDBD2D3D30C61 = {
+			isa = PBXGroup;
+			children = (
+				82975566CC4A37FF814A45B6 /* AudioServerPlugIn */,
+				2AA5315F8C5454272718A876 /* Shared */,
+				B70D60FC9634846D185AD9C3 /* XPCService */,
+				B0AB9DC97E28A5B8875695F2 /* Frameworks */,
+				4E32EBC33FA98F87DD2E4E3B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B0AB9DC97E28A5B8875695F2 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				EF5B5C166742CC5117282084 /* CoreAudio.framework */,
+				78C480D34B263F75CFC9622F /* CoreFoundation.framework */,
+				D9F9B45A0D9A8CC496E0D341 /* Foundation.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		B70D60FC9634846D185AD9C3 /* XPCService */ = {
+			isa = PBXGroup;
+			children = (
+				C093230D922FE9F115BF0B10 /* main.swift */,
+			);
+			path = XPCService;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		28D044924E31B264899DB452 /* MediaButtonVirtualAudioPlugIn */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C975D0DC9F60F6BDE27353E9 /* Build configuration list for PBXNativeTarget "MediaButtonVirtualAudioPlugIn" */;
+			buildPhases = (
+				C9B9F2F5FEDB861852C313A3 /* Sources */,
+				E4ADB3EC9E1D6EBD90799861 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MediaButtonVirtualAudioPlugIn;
+			packageProductDependencies = (
+			);
+			productName = MediaButtonVirtualAudioPlugIn;
+			productReference = B9C4F22E0C57EFAE421BD18E /* MediaButtonVirtualAudioPlugIn.bundle */;
+			productType = "com.apple.product-type.bundle";
+		};
+		FA3B2101F1159C4357BDB41C /* MediaButtonVirtualAudioXPC */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8B6CDD007F9D65982E9334D2 /* Build configuration list for PBXNativeTarget "MediaButtonVirtualAudioXPC" */;
+			buildPhases = (
+				C66C04989EAAEC539527BC10 /* Sources */,
+				2B5674AF3BFD055FC9379836 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MediaButtonVirtualAudioXPC;
+			packageProductDependencies = (
+			);
+			productName = MediaButtonVirtualAudioXPC;
+			productReference = 6EA8B977DDE36074DE4E8AA1 /* MediaButtonVirtualAudioXPC.bundle */;
+			productType = "com.apple.product-type.bundle";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B72DB31A34D8D722A755292B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 7DAD2B9510E789F3AE2FF7E3 /* Build configuration list for PBXProject "MediaButtonVirtualAudioDevice" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = AE85771AB17FDBD2D3D30C61;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4E32EBC33FA98F87DD2E4E3B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				28D044924E31B264899DB452 /* MediaButtonVirtualAudioPlugIn */,
+				FA3B2101F1159C4357BDB41C /* MediaButtonVirtualAudioXPC */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C66C04989EAAEC539527BC10 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AF58F565024F27C1F95FF616 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C9B9F2F5FEDB861852C313A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BDF57F4768CE3D5A4B1F4D63 /* MBITransportShared.c in Sources */,
+				AE1A21D0E5A49B410CD370AD /* MediaButtonVirtualAudioFactory.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		3B79AF782FF19490FE8D077B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_NAME = MediaButtonVirtualAudioPlugIn;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/Shared",
+				);
+				INFOPLIST_FILE = AudioServerPlugIn/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACH_O_TYPE = mh_bundle;
+				OTHER_LDFLAGS = (
+					"-Wl,-exported_symbol,_MediaButtonVirtualAudioFactory",
+					"-Wl,-exported_symbol,_AudioServerPlugInMain",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.gieseking.MediaButtonInterceptor.VirtualAudioPlugIn;
+				PRODUCT_NAME = MediaButtonVirtualAudioPlugIn;
+				SDKROOT = macosx;
+				WRAPPER_EXTENSION = driver;
+			};
+			name = Debug;
+		};
+		503F08019B73788225D9BFB3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		7244063E88BF435413D1E42B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				EMBEDDED_CONTENT_CONTAINS_SWIFT = YES;
+				EXECUTABLE_NAME = MediaButtonVirtualAudioXPC;
+				INFOPLIST_FILE = XPCService/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACH_O_TYPE = mh_execute;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gieseking.MediaButtonInterceptor.VirtualAudioXPC;
+				PRODUCT_NAME = MediaButtonVirtualAudioXPC;
+				SDKROOT = macosx;
+				WRAPPER_EXTENSION = xpc;
+			};
+			name = Debug;
+		};
+		A192F05A5BF1735106D14BB3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				EMBEDDED_CONTENT_CONTAINS_SWIFT = YES;
+				EXECUTABLE_NAME = MediaButtonVirtualAudioXPC;
+				INFOPLIST_FILE = XPCService/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACH_O_TYPE = mh_execute;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gieseking.MediaButtonInterceptor.VirtualAudioXPC;
+				PRODUCT_NAME = MediaButtonVirtualAudioXPC;
+				SDKROOT = macosx;
+				WRAPPER_EXTENSION = xpc;
+			};
+			name = Release;
+		};
+		B98DA1FE6D34DDC9C63C72B3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		CCF18BF1EDB8F829E9C3622C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				EXECUTABLE_NAME = MediaButtonVirtualAudioPlugIn;
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/Shared",
+				);
+				INFOPLIST_FILE = AudioServerPlugIn/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACH_O_TYPE = mh_bundle;
+				OTHER_LDFLAGS = (
+					"-Wl,-exported_symbol,_MediaButtonVirtualAudioFactory",
+					"-Wl,-exported_symbol,_AudioServerPlugInMain",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.gieseking.MediaButtonInterceptor.VirtualAudioPlugIn;
+				PRODUCT_NAME = MediaButtonVirtualAudioPlugIn;
+				SDKROOT = macosx;
+				WRAPPER_EXTENSION = driver;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7DAD2B9510E789F3AE2FF7E3 /* Build configuration list for PBXProject "MediaButtonVirtualAudioDevice" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				503F08019B73788225D9BFB3 /* Debug */,
+				B98DA1FE6D34DDC9C63C72B3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8B6CDD007F9D65982E9334D2 /* Build configuration list for PBXNativeTarget "MediaButtonVirtualAudioXPC" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7244063E88BF435413D1E42B /* Debug */,
+				A192F05A5BF1735106D14BB3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C975D0DC9F60F6BDE27353E9 /* Build configuration list for PBXNativeTarget "MediaButtonVirtualAudioPlugIn" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3B79AF782FF19490FE8D077B /* Debug */,
+				CCF18BF1EDB8F829E9C3622C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B72DB31A34D8D722A755292B /* Project object */;
+}

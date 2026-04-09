@@ -1,0 +1,77 @@
+name: MediaButtonVirtualAudioDevice
+
+options:
+  minimumXcodeGenVersion: 2.45.0
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    CLANG_ENABLE_MODULES: YES
+    CODE_SIGNING_ALLOWED: NO
+    GENERATE_INFOPLIST_FILE: NO
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    SDKROOT: macosx
+
+targets:
+  MediaButtonVirtualAudioPlugIn:
+    type: bundle
+    platform: macOS
+    sources:
+      - path: AudioServerPlugIn
+        excludes:
+          - Info.plist
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gieseking.MediaButtonInterceptor.VirtualAudioPlugIn
+        PRODUCT_NAME: MediaButtonVirtualAudioPlugIn
+        INFOPLIST_FILE: AudioServerPlugIn/Info.plist
+        WRAPPER_EXTENSION: driver
+        MACH_O_TYPE: mh_bundle
+        EXECUTABLE_NAME: MediaButtonVirtualAudioPlugIn
+        HEADER_SEARCH_PATHS:
+          - $(SRCROOT)/Shared
+        OTHER_LDFLAGS:
+          - -Wl,-exported_symbol,_MediaButtonVirtualAudioFactory
+          - -Wl,-exported_symbol,_AudioServerPlugInMain
+    dependencies:
+      - sdk: CoreAudio.framework
+      - sdk: CoreFoundation.framework
+
+  MediaButtonVirtualAudioXPC:
+    type: bundle
+    platform: macOS
+    sources:
+      - path: XPCService
+        excludes:
+          - Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gieseking.MediaButtonInterceptor.VirtualAudioXPC
+        PRODUCT_NAME: MediaButtonVirtualAudioXPC
+        INFOPLIST_FILE: XPCService/Info.plist
+        WRAPPER_EXTENSION: xpc
+        MACH_O_TYPE: mh_execute
+        EXECUTABLE_NAME: MediaButtonVirtualAudioXPC
+        EMBEDDED_CONTENT_CONTAINS_SWIFT: YES
+        LD_RUNPATH_SEARCH_PATHS:
+          - $(inherited)
+          - "@executable_path/../Frameworks"
+    dependencies:
+      - sdk: Foundation.framework
+
+schemes:
+  MediaButtonVirtualAudio:
+    build:
+      targets:
+        MediaButtonVirtualAudioPlugIn: all
+        MediaButtonVirtualAudioXPC: all
+    run:
+      config: Debug

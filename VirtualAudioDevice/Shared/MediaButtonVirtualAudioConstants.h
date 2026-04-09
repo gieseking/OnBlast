@@ -1,0 +1,7 @@
+#pragma once
+
+#define MBIVirtualAudioDeviceName "MediaButton Virtual Microphone"
+#define MBIVirtualAudioPlugInBundleIdentifier "com.gieseking.MediaButtonInterceptor.VirtualAudioPlugIn"
+#define MBIVirtualAudioXPCMachService "com.gieseking.MediaButtonInterceptor.VirtualAudioXPC"
+#define MBIVirtualAudioDriverExtensionBundleIdentifier "com.gieseking.MediaButtonInterceptor.VirtualAudioDriverExtension"
+
