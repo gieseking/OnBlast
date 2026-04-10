@@ -18,6 +18,7 @@ VIRTUAL_AUDIO_XPC_PRODUCT="$VIRTUAL_AUDIO_PRODUCT_DIR/OnBlastVirtualAudioXPC.xpc
 VIRTUAL_AUDIO_RESOURCE_DIR="$APP_BUNDLE/Contents/Resources/VirtualAudioDriver"
 
 cd "$ROOT_DIR"
+"$ROOT_DIR/scripts/sync_version.sh" >/dev/null
 swift "$ROOT_DIR/scripts/generate_app_icon.swift"
 "$ROOT_DIR/scripts/build_virtual_audio_device.sh"
 swift build -c "$BUILD_CONFIGURATION"
