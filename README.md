@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="App/AppIcon.iconset/icon_512x512@2x.png" alt="OnBlast app icon" width="160">
+  <img src="App/AppIcon.iconset/icon_128x128.png" alt="OnBlast app icon" width="128">
 </p>
 
 # OnBlast
