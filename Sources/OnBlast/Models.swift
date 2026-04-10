@@ -191,6 +191,7 @@ struct HIDDeviceSummary: Identifiable, Hashable {
 
 struct AppConfiguration: Codable {
     var startAtLogin: Bool = false
+    var enableAutomaticUpdates: Bool = false
     var enableSystemDefinedEventTap: Bool = true
     var enableHIDMonitor: Bool = true
     var enableExclusiveBoseCapture: Bool = true
@@ -256,6 +257,7 @@ struct AppConfiguration: Codable {
 
     private enum CodingKeys: String, CodingKey {
         case startAtLogin
+        case enableAutomaticUpdates
         case enableSystemDefinedEventTap
         case enableHIDMonitor
         case enableExclusiveBoseCapture
@@ -284,6 +286,7 @@ struct AppConfiguration: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         startAtLogin = try container.decodeIfPresent(Bool.self, forKey: .startAtLogin) ?? false
+        enableAutomaticUpdates = try container.decodeIfPresent(Bool.self, forKey: .enableAutomaticUpdates) ?? false
         enableSystemDefinedEventTap = try container.decodeIfPresent(Bool.self, forKey: .enableSystemDefinedEventTap) ?? true
         enableHIDMonitor = try container.decodeIfPresent(Bool.self, forKey: .enableHIDMonitor) ?? true
         enableExclusiveBoseCapture = try container.decodeIfPresent(Bool.self, forKey: .enableExclusiveBoseCapture) ?? true

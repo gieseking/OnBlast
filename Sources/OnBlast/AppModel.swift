@@ -1,4 +1,5 @@
 import ApplicationServices
+import AppKit
 import Foundation
 import SwiftUI
 
@@ -24,6 +25,12 @@ final class AppModel: ObservableObject {
     @Published private(set) var virtualMicDriverInstallInProgress = false
     @Published private(set) var virtualMicSelfTestInProgress = false
     @Published private(set) var virtualMicSelfTestStatus = "Idle"
+    @Published private(set) var updateCheckInProgress = false
+    @Published private(set) var updateInstallInProgress = false
+    @Published private(set) var updateStatus = "Not checked"
+    @Published private(set) var availableReleaseVersion = ""
+    @Published private(set) var availableReleaseTitle = ""
+    @Published private(set) var lastUpdateCheckDescription = "Never"
     @Published private(set) var logLines: [LogEntry] = []
 
     private let audioDeviceCatalog = AudioDeviceCatalog()
@@ -31,6 +38,7 @@ final class AppModel: ObservableObject {
     private let virtualMicProxyController = VirtualMicProxyController()
     private let virtualMicDriverInstaller = VirtualMicDriverInstaller()
     private let virtualMicSelfTestController = VirtualMicSelfTestController()
+    private let releaseUpdater = ReleaseUpdater()
     private let micSpeechActivityMonitor = MicSpeechActivityMonitor()
     private let outputVolumeMonitor = OutputVolumeMonitor()
     private let dispatcher = ActionDispatcher()
@@ -53,6 +61,8 @@ final class AppModel: ObservableObject {
     private var audioDeviceRefreshInFlight = false
     private var audioDeviceRefreshNeedsReconfigure = false
     private var hasRestoredPersistedMicState = false
+    private var autoUpdateTimer: Timer?
+    private var cachedAvailableRelease: ReleaseInfo?
 
     init() {
         config = AppConfiguration.load()
@@ -76,6 +86,11 @@ final class AppModel: ObservableObject {
             Task { @MainActor in
                 self?.virtualMicSelfTestStatus = status
                 self?.virtualMicSelfTestInProgress = isBusy
+            }
+        }
+        releaseUpdater.onLog = { [weak self] message in
+            Task { @MainActor in
+                self?.appendLog(message)
             }
         }
         micSpeechActivityMonitor.onLog = { [weak self] in self?.appendLog($0) }
@@ -191,6 +206,39 @@ final class AppModel: ObservableObject {
     func refreshState() {
         refreshRuntimeState()
         refreshAudioDevicesAsync(forceReconfigure: false)
+    }
+
+    func checkForUpdatesManually() {
+        guard !updateCheckInProgress, !updateInstallInProgress else {
+            return
+        }
+
+        Task {
+            await performUpdateCheck(installIfAvailable: false, sourceDescription: "manual")
+        }
+    }
+
+    func installAvailableUpdate() {
+        guard !updateInstallInProgress else {
+            return
+        }
+
+        guard let release = cachedAvailableRelease else {
+            updateStatus = "No pending update is available"
+            return
+        }
+
+        Task {
+            await installRelease(release, sourceDescription: "manual")
+        }
+    }
+
+    func openReleasesPage() {
+        guard let url = URL(string: "https://github.com/gieseking/OnBlast/releases") else {
+            return
+        }
+
+        NSWorkspace.shared.open(url)
     }
 
     private func refreshRuntimeState() {
@@ -322,6 +370,10 @@ final class AppModel: ObservableObject {
             }
         } else if Bundle.main.bundleURLIfAppBundle == nil {
             startupBackendDescription = "Unavailable outside .app bundle"
+        }
+
+        if previousConfiguration == nil || previousConfiguration?.enableAutomaticUpdates != config.enableAutomaticUpdates {
+            configureAutomaticUpdateChecks(runImmediateCheck: previousConfiguration == nil || config.enableAutomaticUpdates)
         }
     }
 
@@ -604,9 +656,140 @@ final class AppModel: ObservableObject {
         }
     }
 
+    private func configureAutomaticUpdateChecks(runImmediateCheck: Bool) {
+        autoUpdateTimer?.invalidate()
+        autoUpdateTimer = nil
+
+        guard config.enableAutomaticUpdates else {
+            if updateStatus == "Not checked" || updateStatus.hasPrefix("Automatic updates") {
+                updateStatus = "Automatic updates are disabled"
+            }
+            return
+        }
+
+        updateStatus = "Automatic updates are enabled"
+        autoUpdateTimer = Timer.scheduledTimer(withTimeInterval: 6 * 60 * 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.performUpdateCheck(installIfAvailable: true, sourceDescription: "automatic")
+            }
+        }
+
+        guard runImmediateCheck else {
+            return
+        }
+
+        Task {
+            await performUpdateCheck(installIfAvailable: true, sourceDescription: "automatic")
+        }
+    }
+
+    private func performUpdateCheck(installIfAvailable: Bool, sourceDescription: String) async {
+        guard !updateCheckInProgress, !updateInstallInProgress else {
+            return
+        }
+
+        updateCheckInProgress = true
+        updateStatus = "Checking GitHub Releases..."
+
+        defer {
+            updateCheckInProgress = false
+        }
+
+        do {
+            let latestRelease = try await releaseUpdater.fetchLatestRelease()
+            lastUpdateCheckDescription = Self.updateDateFormatter.string(from: Date())
+
+            guard let currentVersion = ReleaseVersion(releaseUpdater.currentVersionString) else {
+                cachedAvailableRelease = nil
+                availableReleaseVersion = ""
+                availableReleaseTitle = ""
+                updateStatus = "Current app version is invalid"
+                return
+            }
+
+            if latestRelease.version > currentVersion {
+                cachedAvailableRelease = latestRelease
+                availableReleaseVersion = latestRelease.version.description
+                availableReleaseTitle = latestRelease.title
+                updateStatus = "Update available: \(latestRelease.version.description)"
+                appendLog("GitHub Releases reports a newer version \(latestRelease.version.description)")
+
+                if installIfAvailable && config.enableAutomaticUpdates {
+                    await installRelease(latestRelease, sourceDescription: sourceDescription)
+                }
+            } else {
+                cachedAvailableRelease = nil
+                availableReleaseVersion = ""
+                availableReleaseTitle = ""
+                updateStatus = "OnBlast is up to date"
+            }
+        } catch {
+            cachedAvailableRelease = nil
+            availableReleaseVersion = ""
+            availableReleaseTitle = ""
+            updateStatus = "Update check failed: \(error.localizedDescription)"
+            appendLog("Update check failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func installRelease(_ release: ReleaseInfo, sourceDescription: String) async {
+        guard !updateInstallInProgress else {
+            return
+        }
+
+        guard let bundleURL = Bundle.main.bundleURLIfAppBundle else {
+            updateStatus = "Updates require OnBlast to run from an installed .app bundle"
+            return
+        }
+
+        updateInstallInProgress = true
+        updateStatus = "Installing \(release.version.description)..."
+        appendLog("Starting \(sourceDescription) update to \(release.version.description)")
+
+        defer {
+            updateInstallInProgress = false
+        }
+
+        do {
+            try await releaseUpdater.installRelease(
+                release,
+                over: bundleURL,
+                currentProcessID: ProcessInfo.processInfo.processIdentifier
+            )
+
+            updateStatus = "Update scheduled. OnBlast will restart."
+            appendLog("Update to \(release.version.description) was scheduled successfully")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                NSApp.terminate(nil)
+            }
+        } catch {
+            updateStatus = "Update install failed: \(error.localizedDescription)"
+            appendLog("Update install failed: \(error.localizedDescription)")
+        }
+    }
+
+    var appVersionDisplay: String {
+        "\(releaseUpdater.currentVersionString) (\(releaseUpdater.currentBuildString))"
+    }
+
+    var appInstallLocationDescription: String {
+        releaseUpdater.currentBundlePath
+    }
+
+    var updateAvailable: Bool {
+        cachedAvailableRelease != nil
+    }
+
     private func allNonInputAudioDevices() -> [AudioDeviceOption] {
         cachedAudioDevices.filter { $0.inputChannelCount == 0 || $0.isVirtual }
     }
+
+    private static let updateDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
 }
 
 private extension Bundle {

@@ -4,7 +4,7 @@
 
 It is designed around Bose Bluetooth headset behavior on macOS, including the common case where the center button triggers Siri instead of exposing a normal keyboard shortcut.
 
-Current tracked version: `1.0.0`
+Current tracked version: `1.0.1`
 
 This workspace follows the plan in `/Users/gieseking/Downloads/Bose_Mac_Remapping_Plan.docx`:
 
@@ -105,7 +105,7 @@ Reinstall the virtual mic driver after driver-side updates so Core Audio picks u
 
 Prebuilt app bundles should be distributed through GitHub Releases as versioned zip assets, for example:
 
-- `OnBlast-1.0.0-macOS.zip`
+- `OnBlast-1.0.1-macOS.zip`
 
 The repository includes:
 

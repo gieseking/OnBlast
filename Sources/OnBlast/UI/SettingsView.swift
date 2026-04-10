@@ -48,6 +48,62 @@ struct SettingsView: View {
                 }
             }
 
+            Section("About & Updates") {
+                LabeledContent("Version") {
+                    Text(model.appVersionDisplay)
+                }
+                LabeledContent("Installed from") {
+                    Text(model.appInstallLocationDescription)
+                        .multilineTextAlignment(.trailing)
+                }
+                LabeledContent("Last checked") {
+                    Text(model.lastUpdateCheckDescription)
+                }
+                LabeledContent("Update status") {
+                    Text(model.updateStatus)
+                        .multilineTextAlignment(.trailing)
+                }
+
+                Toggle("Enable automatic updates", isOn: $model.config.enableAutomaticUpdates)
+
+                if model.updateAvailable {
+                    LabeledContent("Latest release") {
+                        Text(model.availableReleaseVersion.isEmpty ? model.availableReleaseTitle : model.availableReleaseVersion)
+                    }
+                }
+
+                HStack {
+                    Button("Check for Updates") {
+                        model.checkForUpdatesManually()
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(model.updateCheckInProgress || model.updateInstallInProgress)
+
+                    if model.updateAvailable {
+                        Button("Install Update") {
+                            model.installAvailableUpdate()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.updateCheckInProgress || model.updateInstallInProgress)
+                    }
+
+                    Button("Open Releases Page") {
+                        model.openReleasesPage()
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(model.updateInstallInProgress)
+
+                    if model.updateCheckInProgress || model.updateInstallInProgress {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+
+                Text("Updates are downloaded from GitHub Releases. Installing an update replaces the current app bundle and restarts OnBlast. If the app is installed in /Applications, macOS may prompt for administrator credentials.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("General") {
                 Toggle("Launch at login", isOn: $model.config.startAtLogin)
                 Toggle("Enable system-defined event tap", isOn: $model.config.enableSystemDefinedEventTap)
