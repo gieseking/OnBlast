@@ -6,9 +6,11 @@
 
 `OnBlast` is a macOS menu-bar helper for remapping headset and media-button events to actions like microphone mute, media transport controls, and extra function keys such as `F19`.
 
+It turns your headset into a smart mute system that not only lets you control your mic instantly, but also helps prevent you from accidentally speaking while muted.
+
 It is designed around Bose Bluetooth headset behavior on macOS, including the common case where the center button triggers Siri instead of exposing a normal keyboard shortcut.
 
-Current tracked version: `1.0.2`
+Current tracked version: `1.0.3`
 
 - Menu-bar utility with a settings window
 - Core Audio microphone mute control
@@ -107,7 +109,7 @@ Reinstall the virtual mic driver after driver-side updates so Core Audio picks u
 
 Prebuilt app bundles should be distributed through GitHub Releases as versioned zip assets, for example:
 
-- `OnBlast-1.0.2-macOS.zip`
+- `OnBlast-1.0.3-macOS.zip`
 
 The repository includes:
 

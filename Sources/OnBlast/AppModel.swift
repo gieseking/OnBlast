@@ -40,6 +40,7 @@ final class AppModel: ObservableObject {
     private let virtualMicSelfTestController = VirtualMicSelfTestController()
     private let releaseUpdater = ReleaseUpdater()
     private let micSpeechActivityMonitor = MicSpeechActivityMonitor()
+    private let micStateRecoveryMonitor = MicStateRecoveryMonitor()
     private let outputVolumeMonitor = OutputVolumeMonitor()
     private let dispatcher = ActionDispatcher()
     private let systemDefinedEventTap = SystemDefinedEventTap()
@@ -96,6 +97,10 @@ final class AppModel: ObservableObject {
         micSpeechActivityMonitor.onLog = { [weak self] in self?.appendLog($0) }
         micSpeechActivityMonitor.onSpeechDetected = { [weak self] in
             self?.handleSpeechDetectedWhileMuted($0)
+        }
+        micStateRecoveryMonitor.onLog = { [weak self] in self?.appendLog($0) }
+        micStateRecoveryMonitor.onStateChange = { [weak self] deviceTopologyMayHaveChanged in
+            self?.handleObservedMicStateChange(deviceTopologyMayHaveChanged: deviceTopologyMayHaveChanged)
         }
         outputVolumeMonitor.onLog = { [weak self] in self?.appendLog($0) }
         outputVolumeMonitor.onButtonEvent = { [weak self] in self?.handleInterceptableButtonEvent($0) ?? false }
@@ -379,6 +384,11 @@ final class AppModel: ObservableObject {
 
     private func applyAudioDeviceDependentConfiguration() {
         deviceMicController.preferredInputDeviceUID = resolvedPhysicalInputDeviceUID
+        micStateRecoveryMonitor.configure(
+            enabled: config.micMuteBackend == .deviceMute,
+            preferredInputDeviceUID: resolvedPhysicalInputDeviceUID,
+            followSystemDefaultInput: config.virtualMicInputDeviceUID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        )
         virtualMicProxyController.configure(
             enabled: config.micMuteBackend == .virtualMicProxy,
             selectedInputDeviceUID: resolvedPhysicalInputDeviceUID,
@@ -417,6 +427,19 @@ final class AppModel: ObservableObject {
         }
 
         return wasHandled
+    }
+
+    private func handleObservedMicStateChange(deviceTopologyMayHaveChanged: Bool) {
+        let previousMicState = micState
+        refreshRuntimeState()
+
+        if deviceTopologyMayHaveChanged {
+            refreshAudioDevicesAsync(forceReconfigure: true)
+        }
+
+        if previousMicState != micState {
+            appendLog("Recovered microphone state after an external change: \(micState.displayName)")
+        }
     }
 
     private func handleFallbackButtonEvent(_ event: ButtonEvent) -> Bool {
