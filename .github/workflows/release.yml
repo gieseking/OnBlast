@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Ensure scripts are executable
+        run: chmod +x scripts/*.sh
+
+      - name: Sync version metadata
+        run: ./scripts/sync_version.sh
+
+      - name: Package release archive
+        run: ./scripts/package_release.sh
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: .dist/releases/OnBlast-*-macOS.zip
+          generate_release_notes: true
