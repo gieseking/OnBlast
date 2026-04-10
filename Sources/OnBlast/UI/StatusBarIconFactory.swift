@@ -25,7 +25,11 @@ enum StatusBarIconFactory {
         image.lockFocus()
         defer { image.unlockFocus() }
 
-        drawBaseMic(in: NSRect(x: 1.6, y: 1.3, width: 14.8, height: 14.8))
+        drawBaseMic(
+            in: NSRect(x: 1.6, y: 1.3, width: 14.8, height: 14.8),
+            micColor: NSColor.systemGreen,
+            shadowColor: NSColor.black.withAlphaComponent(0.22)
+        )
         return image
     }
 
@@ -37,7 +41,11 @@ enum StatusBarIconFactory {
         image.lockFocus()
         defer { image.unlockFocus() }
 
-        drawBaseMic(in: NSRect(x: 1.6, y: 1.3, width: 14.8, height: 14.8))
+        drawBaseMic(
+            in: NSRect(x: 1.6, y: 1.3, width: 14.8, height: 14.8),
+            micColor: NSColor(calibratedWhite: 0.98, alpha: 1.0),
+            shadowColor: NSColor.black.withAlphaComponent(0.28)
+        )
 
         let overlayRect = NSRect(x: 1.25, y: 1.25, width: 15.5, height: 15.5)
         let circlePath = NSBezierPath(ovalIn: overlayRect)
@@ -56,12 +64,16 @@ enum StatusBarIconFactory {
         return image
     }
 
-    private static func drawBaseMic(in micBounds: NSRect) {
+    private static func drawBaseMic(
+        in micBounds: NSRect,
+        micColor: NSColor,
+        shadowColor: NSColor
+    ) {
         if let shadowMic = tintedSymbol(
             systemName: "mic.fill",
             pointSize: 14.2,
             weight: .bold,
-            color: NSColor.black.withAlphaComponent(0.28)
+            color: shadowColor
         ) {
             shadowMic.draw(
                 in: micBounds.offsetBy(dx: 0, dy: -0.15),
@@ -75,7 +87,7 @@ enum StatusBarIconFactory {
             systemName: "mic.fill",
             pointSize: 14.2,
             weight: .bold,
-            color: NSColor(calibratedWhite: 0.98, alpha: 1.0)
+            color: micColor
         ) {
             mic.draw(
                 in: micBounds,

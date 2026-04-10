@@ -215,8 +215,14 @@ struct SettingsView: View {
             Section("Announcements") {
                 Toggle("Enable spoken mic-state announcements", isOn: $model.config.enableSpokenAnnouncements)
                 Toggle("Replay muted reminder when speech is detected", isOn: $model.config.enableMutedSpeechReminder)
+                Toggle("Only trigger muted reminder when Zoom, Teams, or Meet is active", isOn: $model.config.onlyTriggerMutedSpeechReminderWhenMeetingAppActive)
+                    .disabled(!model.config.enableMutedSpeechReminder)
 
                 Text("The muted reminder works best on devices that still expose voice activity while muted. Some Bluetooth and hardware mute paths hard-zero the input, which prevents any user-space app from detecting speech after mute.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Text("Zoom and Teams are detected directly. Google Meet detection is best effort and uses the active browser window title when Accessibility permission is available.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
