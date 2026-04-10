@@ -6,8 +6,6 @@ It is designed around Bose Bluetooth headset behavior on macOS, including the co
 
 Current tracked version: `1.0.1`
 
-This workspace follows the plan in `/Users/gieseking/Downloads/Bose_Mac_Remapping_Plan.docx`:
-
 - Menu-bar utility with a settings window
 - Core Audio microphone mute control
 - Public system-defined event interception
