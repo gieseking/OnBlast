@@ -62,6 +62,10 @@ final class AudioDeviceCatalog: @unchecked Sendable {
         return nil
     }
 
+    func deviceUID(for deviceID: AudioDeviceID) -> String? {
+        try? readString(deviceID: deviceID, selector: kAudioDevicePropertyDeviceUID)
+    }
+
     private func deviceIDs() -> [AudioDeviceID] {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioHardwarePropertyDevices,
