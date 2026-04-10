@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="App/AppIcon.iconset/icon_512x512@2x.png" alt="OnBlast app icon" width="160">
+</p>
+
 # OnBlast
 
 `OnBlast` is a macOS menu-bar helper for remapping headset and media-button events to actions like microphone mute, media transport controls, and extra function keys such as `F19`.
