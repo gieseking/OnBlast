@@ -201,6 +201,7 @@ struct AppConfiguration: Codable {
     var enableOutputVolumeFallback: Bool = false
     var enableSpokenAnnouncements: Bool = true
     var enableMutedSpeechReminder: Bool = true
+    var onlyTriggerMutedSpeechReminderWhenMeetingAppActive: Bool = false
     var micMuteBackend: MicMuteBackend = .deviceMute
     var restoreMutedStateOnLaunch: Bool = false
     var virtualMicInputDeviceUID: String = ""
@@ -267,6 +268,7 @@ struct AppConfiguration: Codable {
         case enableOutputVolumeFallback
         case enableSpokenAnnouncements
         case enableMutedSpeechReminder
+        case onlyTriggerMutedSpeechReminderWhenMeetingAppActive
         case micMuteBackend
         case restoreMutedStateOnLaunch
         case virtualMicInputDeviceUID
@@ -296,6 +298,7 @@ struct AppConfiguration: Codable {
         enableOutputVolumeFallback = try container.decodeIfPresent(Bool.self, forKey: .enableOutputVolumeFallback) ?? false
         enableSpokenAnnouncements = try container.decodeIfPresent(Bool.self, forKey: .enableSpokenAnnouncements) ?? true
         enableMutedSpeechReminder = try container.decodeIfPresent(Bool.self, forKey: .enableMutedSpeechReminder) ?? true
+        onlyTriggerMutedSpeechReminderWhenMeetingAppActive = try container.decodeIfPresent(Bool.self, forKey: .onlyTriggerMutedSpeechReminderWhenMeetingAppActive) ?? false
         micMuteBackend = try container.decodeIfPresent(MicMuteBackend.self, forKey: .micMuteBackend) ?? .deviceMute
         restoreMutedStateOnLaunch = try container.decodeIfPresent(Bool.self, forKey: .restoreMutedStateOnLaunch) ?? false
         virtualMicInputDeviceUID = try container.decodeIfPresent(String.self, forKey: .virtualMicInputDeviceUID) ?? ""
