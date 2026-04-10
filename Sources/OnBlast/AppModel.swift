@@ -488,6 +488,10 @@ final class AppModel: ObservableObject {
             return
         }
 
+        guard shouldTriggerMutedSpeechReminder() else {
+            return
+        }
+
         mutedSpeechReminderArmed = false
         if let level = event.level {
             appendLog(
@@ -498,6 +502,78 @@ final class AppModel: ObservableObject {
         }
         dispatcher.playMutedReminder()
         micSpeechActivityMonitor.suppressDetection(for: 1.5)
+    }
+
+    private func shouldTriggerMutedSpeechReminder() -> Bool {
+        guard config.onlyTriggerMutedSpeechReminderWhenMeetingAppActive else {
+            return true
+        }
+
+        guard let activeMeetingApp = activeMeetingApplicationDescription() else {
+            appendLog("Skipped muted reminder because Zoom, Teams, or Meet is not active")
+            return false
+        }
+
+        appendLog("Muted reminder gated by active meeting app: \(activeMeetingApp)")
+        return true
+    }
+
+    private func activeMeetingApplicationDescription() -> String? {
+        guard let application = NSWorkspace.shared.frontmostApplication,
+              let bundleIdentifier = application.bundleIdentifier else {
+            return nil
+        }
+
+        switch bundleIdentifier {
+        case "us.zoom.xos":
+            return "Zoom"
+        case "com.microsoft.teams2", "com.microsoft.teams":
+            return "Teams"
+        default:
+            guard browserBundleIdentifiers.contains(bundleIdentifier) else {
+                return nil
+            }
+
+            guard let windowTitle = focusedWindowTitle(for: application),
+                  windowTitle.localizedCaseInsensitiveContains("meet") else {
+                return nil
+            }
+
+            return "Google Meet"
+        }
+    }
+
+    private func focusedWindowTitle(for application: NSRunningApplication) -> String? {
+        guard AXIsProcessTrusted() else {
+            return nil
+        }
+
+        let appElement = AXUIElementCreateApplication(application.processIdentifier)
+        var focusedWindowValue: CFTypeRef?
+        let focusedWindowStatus = AXUIElementCopyAttributeValue(
+            appElement,
+            kAXFocusedWindowAttribute as CFString,
+            &focusedWindowValue
+        )
+
+        guard focusedWindowStatus == .success,
+              let focusedWindow = focusedWindowValue else {
+            return nil
+        }
+
+        let windowElement = focusedWindow as! AXUIElement
+        var titleValue: CFTypeRef?
+        let titleStatus = AXUIElementCopyAttributeValue(
+            windowElement,
+            kAXTitleAttribute as CFString,
+            &titleValue
+        )
+
+        guard titleStatus == .success else {
+            return nil
+        }
+
+        return titleValue as? String
     }
 
     private func appendLog(_ message: String) {
@@ -514,6 +590,15 @@ final class AppModel: ObservableObject {
         formatter.dateFormat = "HH:mm:ss"
         return formatter
     }()
+
+    private let browserBundleIdentifiers: Set<String> = [
+        "com.apple.Safari",
+        "com.google.Chrome",
+        "com.google.Chrome.canary",
+        "org.mozilla.firefox",
+        "com.brave.Browser",
+        "com.microsoft.edgemac"
+    ]
 
     private var activeMicController: MicMuteControlling {
         switch config.micMuteBackend {
