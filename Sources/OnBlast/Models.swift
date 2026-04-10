@@ -213,7 +213,7 @@ struct AppConfiguration: Codable {
     var liveSoundFilePath: String = ""
     var consumeInterceptedEvents: Bool = true
     var boseNameFilter: String = "Bose"
-    var menuBarTitle: String = "OB"
+    var menuBarTitle: String = ""
     private var mappings: [String: ButtonAction] = AppConfiguration.defaultMappings
 
     static let storageKey = "com.gieseking.OnBlast.configuration"
@@ -310,7 +310,7 @@ struct AppConfiguration: Codable {
         liveSoundFilePath = try container.decodeIfPresent(String.self, forKey: .liveSoundFilePath) ?? ""
         consumeInterceptedEvents = try container.decodeIfPresent(Bool.self, forKey: .consumeInterceptedEvents) ?? true
         boseNameFilter = try container.decodeIfPresent(String.self, forKey: .boseNameFilter) ?? "Bose"
-        menuBarTitle = try container.decodeIfPresent(String.self, forKey: .menuBarTitle) ?? "OB"
+        menuBarTitle = try container.decodeIfPresent(String.self, forKey: .menuBarTitle) ?? ""
         mappings = try container.decodeIfPresent([String: ButtonAction].self, forKey: .mappings) ?? AppConfiguration.defaultMappings
     }
 }

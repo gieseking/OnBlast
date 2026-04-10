@@ -10,7 +10,7 @@ It turns your headset into a smart mute system that not only lets you control yo
 
 It is designed around Bose Bluetooth headset behavior on macOS, including the common case where the center button triggers Siri instead of exposing a normal keyboard shortcut.
 
-Current tracked version: `1.0.3`
+Current tracked version: `1.0.4`
 
 - Menu-bar utility with a settings window
 - Core Audio microphone mute control
@@ -109,7 +109,7 @@ Reinstall the virtual mic driver after driver-side updates so Core Audio picks u
 
 Prebuilt app bundles should be distributed through GitHub Releases as versioned zip assets, for example:
 
-- `OnBlast-1.0.3-macOS.zip`
+- `OnBlast-1.0.4-macOS.zip`
 
 The repository includes:
 
