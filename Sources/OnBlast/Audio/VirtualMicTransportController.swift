@@ -87,7 +87,13 @@ final class VirtualMicTransportController: @unchecked Sendable {
 
         if let sharedMemoryPointer {
             OBTransportSetSampleRate(sharedMemoryPointer, normalizedSampleRate(Self.transportSampleRate))
-            OBTransportSetBufferFrameSize(sharedMemoryPointer, Self.transportBufferFrameSize)
+            OBTransportSetBufferFrameSize(
+                sharedMemoryPointer,
+                resolvedTransportBufferFrameSize(
+                    sourceSampleRate: selectedInputSampleRate,
+                    sourceBufferFrameSize: selectedInputBufferFrameSize
+                )
+            )
             OBTransportSetMuted(sharedMemoryPointer, muted ? 1 : 0)
         }
 
@@ -121,7 +127,13 @@ final class VirtualMicTransportController: @unchecked Sendable {
         sharedMemoryPointer = mappedPointer
         OBTransportInitialize(mappedPointer)
         OBTransportSetSampleRate(mappedPointer, normalizedSampleRate(Self.transportSampleRate))
-        OBTransportSetBufferFrameSize(mappedPointer, Self.transportBufferFrameSize)
+        OBTransportSetBufferFrameSize(
+            mappedPointer,
+            resolvedTransportBufferFrameSize(
+                sourceSampleRate: selectedInputSampleRate,
+                sourceBufferFrameSize: selectedInputBufferFrameSize
+            )
+        )
         OBTransportSetMuted(mappedPointer, muted ? 1 : 0)
         OBTransportSetRunning(mappedPointer, 0)
         OBTransportSetSourceConnected(mappedPointer, 0)
@@ -167,11 +179,15 @@ final class VirtualMicTransportController: @unchecked Sendable {
             readUInt32(deviceID: deviceID, selector: kAudioDevicePropertyBufferFrameSize) ?? 320
         )
         let resolvedBufferFrameSize = UInt32(max(bufferFrameSize, 1))
+        let transportBufferFrameSize = resolvedTransportBufferFrameSize(
+            sourceSampleRate: inputSampleRate,
+            sourceBufferFrameSize: resolvedBufferFrameSize
+        )
         selectedInputBufferFrameSize = resolvedBufferFrameSize
 
         OBTransportInitialize(sharedMemoryPointer)
         OBTransportSetSampleRate(sharedMemoryPointer, normalizedSampleRate(Self.transportSampleRate))
-        OBTransportSetBufferFrameSize(sharedMemoryPointer, Self.transportBufferFrameSize)
+        OBTransportSetBufferFrameSize(sharedMemoryPointer, transportBufferFrameSize)
         OBTransportSetMuted(sharedMemoryPointer, muted ? 1 : 0)
         OBTransportSetRunning(sharedMemoryPointer, 0)
         OBTransportSetSourceConnected(sharedMemoryPointer, 0)
@@ -228,7 +244,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
             "Virtual mic transport started CoreAudio capture from '\(selectedInputDeviceName)' " +
             "(sourceSampleRate=\(Int(streamDescription.mSampleRate.rounded())) transportSampleRate=\(Int(Self.transportSampleRate.rounded())) " +
             "channels=\(streamDescription.mChannelsPerFrame) bits=\(streamDescription.mBitsPerChannel) flags=\(streamDescription.mFormatFlags) " +
-            "sourceBufferFrameSize=\(bufferFrameSize) transportBufferFrameSize=\(Self.transportBufferFrameSize))"
+            "sourceBufferFrameSize=\(bufferFrameSize) transportBufferFrameSize=\(transportBufferFrameSize))"
         )
     }
 
@@ -369,6 +385,19 @@ final class VirtualMicTransportController: @unchecked Sendable {
         }
 
         return UInt32(max(8_000, min(192_000, Int(sampleRate.rounded()))))
+    }
+
+    private func resolvedTransportBufferFrameSize(
+        sourceSampleRate: Double,
+        sourceBufferFrameSize: UInt32
+    ) -> UInt32 {
+        guard sourceBufferFrameSize > 0 else {
+            return Self.transportBufferFrameSize
+        }
+
+        let effectiveSourceSampleRate = max(sourceSampleRate, 1)
+        let scaledFrameCount = (Double(sourceBufferFrameSize) * Self.transportSampleRate) / effectiveSourceSampleRate
+        return UInt32(max(1, Int(scaledFrameCount.rounded())))
     }
 
     private func log(_ message: String) {
