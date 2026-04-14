@@ -68,6 +68,10 @@ final class VirtualMicProxyController: MicMuteControlling {
             return .unavailable
         }
 
+        guard transportController.isSourceConnected else {
+            return .disconnected
+        }
+
         return muted ? .muted : .live
     }
 
@@ -110,6 +114,10 @@ final class VirtualMicProxyController: MicMuteControlling {
 
         guard !selectedInputDeviceUID.isEmpty else {
             return "Choose an input microphone"
+        }
+
+        guard transportController.isSourceConnected else {
+            return "Selected input microphone is not connected"
         }
 
         return muted ? "Virtual microphone transport muted" : "Virtual microphone transport live"

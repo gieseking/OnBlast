@@ -7,6 +7,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
     var onSpeechDetected: ((MicSpeechDetectionEvent) -> Void)?
 
     private let sessionQueue = DispatchQueue(label: "OnBlast.VirtualMicTransport.session")
+    private let stateLock = NSLock()
 
     private var selectedInputDeviceUID = ""
     private var selectedInputDeviceName = ""
@@ -24,6 +25,13 @@ final class VirtualMicTransportController: @unchecked Sendable {
     private var runningDeviceID = AudioDeviceID(kAudioObjectUnknown)
     private var ioProcID: AudioDeviceIOProcID?
     private var captureContext: CaptureContext?
+    private var sourceConnected = false
+
+    var isSourceConnected: Bool {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return sourceConnected
+    }
 
     func configure(
         enabled: Bool,
@@ -85,7 +93,8 @@ final class VirtualMicTransportController: @unchecked Sendable {
         if ioProcID != nil,
            runningCaptureDeviceUID == selectedInputDeviceUID,
            normalizedSampleRate(runningCaptureSampleRate) == normalizedSampleRate(selectedInputSampleRate),
-           runningCaptureBufferFrameSize == selectedInputBufferFrameSize {
+           runningCaptureBufferFrameSize == selectedInputBufferFrameSize,
+           resolveDeviceID(forUID: selectedInputDeviceUID) != nil {
             return
         }
 
@@ -113,6 +122,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
         OBTransportSetMuted(mappedPointer, muted ? 1 : 0)
         OBTransportSetRunning(mappedPointer, 0)
         OBTransportSetSourceConnected(mappedPointer, 0)
+        setSourceConnected(false)
         log("Virtual mic transport shared memory opened at \(String(cString: OBTransportSharedMemoryPath()))")
         return true
     }
@@ -127,6 +137,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
         guard let deviceID = resolveDeviceID(forUID: selectedInputDeviceUID) else {
             OBTransportSetRunning(sharedMemoryPointer, 0)
             OBTransportSetSourceConnected(sharedMemoryPointer, 0)
+            setSourceConnected(false)
             log("Virtual mic transport could not resolve CoreAudio input device UID '\(selectedInputDeviceUID)'")
             return
         }
@@ -161,6 +172,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
         OBTransportSetMuted(sharedMemoryPointer, muted ? 1 : 0)
         OBTransportSetRunning(sharedMemoryPointer, 0)
         OBTransportSetSourceConnected(sharedMemoryPointer, 0)
+        setSourceConnected(false)
 
         let context = CaptureContext(
             sharedMemory: sharedMemoryPointer,
@@ -173,6 +185,9 @@ final class VirtualMicTransportController: @unchecked Sendable {
         context.onSpeechDetected = { [weak self] event in
             self?.emitSpeechDetected(event)
         }
+        context.onSourceConnectionChanged = { [weak self] connected in
+            self?.setSourceConnected(connected)
+        }
         context.speechDetectionEnabled = speechDetectionEnabled
 
         var ioProcID: AudioDeviceIOProcID?
@@ -184,6 +199,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
         )
 
         guard createStatus == noErr, let ioProcID else {
+            setSourceConnected(false)
             log("Virtual mic transport failed to create CoreAudio IOProc (status \(createStatus))")
             return
         }
@@ -191,6 +207,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
         let startStatus = AudioDeviceStart(deviceID, ioProcID)
         guard startStatus == noErr else {
             AudioDeviceDestroyIOProcID(deviceID, ioProcID)
+            setSourceConnected(false)
             log("Virtual mic transport failed to start CoreAudio IOProc (status \(startStatus))")
             return
         }
@@ -202,6 +219,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
         self.runningCaptureSampleRate = sampleRate
         self.runningCaptureBufferFrameSize = resolvedBufferFrameSize
         OBTransportSetRunning(sharedMemoryPointer, 1)
+        setSourceConnected(true)
         log(
             "Virtual mic transport started CoreAudio capture from '\(selectedInputDeviceName)' " +
             "(sampleRate=\(Int(streamDescription.mSampleRate.rounded())) channels=\(streamDescription.mChannelsPerFrame) " +
@@ -226,10 +244,17 @@ final class VirtualMicTransportController: @unchecked Sendable {
             OBTransportSetRunning(sharedMemoryPointer, 0)
             OBTransportSetSourceConnected(sharedMemoryPointer, 0)
         }
+        setSourceConnected(false)
 
         if let reason {
             log("Virtual mic transport stopped because \(reason)")
         }
+    }
+
+    private func setSourceConnected(_ connected: Bool) {
+        stateLock.lock()
+        sourceConnected = connected
+        stateLock.unlock()
     }
 
     private func resolveDeviceID(forUID uid: String) -> AudioDeviceID? {
@@ -359,6 +384,7 @@ final class VirtualMicTransportController: @unchecked Sendable {
 private final class CaptureContext {
     var onLog: ((String) -> Void)?
     var onSpeechDetected: ((MicSpeechDetectionEvent) -> Void)?
+    var onSourceConnectionChanged: ((Bool) -> Void)?
     var speechDetectionEnabled = false
 
     private let sharedMemory: UnsafeMutablePointer<OBTransportSharedMemory>
@@ -407,6 +433,7 @@ private final class CaptureContext {
         detectSpeech(audioBuffers: audioBuffers, frameCount: frameCount)
         OBTransportSetSourceConnected(sharedMemory, 1)
         OBTransportSetRunning(sharedMemory, 1)
+        onSourceConnectionChanged?(true)
         return noErr
     }
 

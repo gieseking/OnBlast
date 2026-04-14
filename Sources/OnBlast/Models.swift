@@ -101,6 +101,7 @@ enum ButtonAction: String, CaseIterable, Codable, Identifiable {
 enum MicState: String {
     case muted
     case live
+    case disconnected
     case unavailable
     case unknown
 
@@ -110,6 +111,8 @@ enum MicState: String {
             return "Muted"
         case .live:
             return "Live"
+        case .disconnected:
+            return "Not Connected"
         case .unavailable:
             return "Unavailable"
         case .unknown:
