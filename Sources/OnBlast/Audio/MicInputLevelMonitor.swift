@@ -15,6 +15,7 @@ final class MicInputLevelMonitor: NSObject, @unchecked Sendable {
     private var selectedInputDeviceUID = ""
     private var selectedInputDeviceName = ""
     private var audioUnit: AudioUnit?
+    private var captureContext: CaptureContext?
     private var currentDeviceID = AudioDeviceID(kAudioObjectUnknown)
     private var currentStatus = "No input device"
     private var smoothedLevel: Double = 0
@@ -147,6 +148,7 @@ final class MicInputLevelMonitor: NSObject, @unchecked Sendable {
                     self?.log(message)
                 }
             )
+            captureContext = context
 
             var callback = AURenderCallbackStruct(
                 inputProc: CaptureContext.inputProc,
@@ -190,6 +192,7 @@ final class MicInputLevelMonitor: NSObject, @unchecked Sendable {
         }
 
         audioUnit = nil
+        captureContext = nil
         currentDeviceID = AudioDeviceID(kAudioObjectUnknown)
         smoothedLevel = 0
         lastEmittedLevel = -1

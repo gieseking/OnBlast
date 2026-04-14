@@ -254,7 +254,7 @@ final class ReleaseUpdater: @unchecked Sendable {
         /bin/rm -rf "$dst"
         /usr/bin/ditto "$src" "$dst"
         /usr/bin/xattr -dr com.apple.quarantine "$dst" >/dev/null 2>&1 || true
-        /usr/bin/open "$dst"
+        /usr/bin/open -n "$dst"
         /bin/rm -rf "$cleanup"
         /bin/rm -f "$0"
         """
