@@ -17,6 +17,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var accessibilityGranted = false
     @Published private(set) var startupStatus = "Unknown"
     @Published private(set) var startupBackendDescription = StartupManager.Backend.disabled.rawValue
+    @Published private(set) var micInputLevel: Double = 0
+    @Published private(set) var micInputLevelStatus = "No input device"
     @Published private(set) var discoveredDevices: [HIDDeviceSummary] = []
     @Published private(set) var inputAudioDevices: [AudioDeviceOption] = []
     @Published private(set) var bundledVirtualMicDriverAvailable = false
@@ -40,6 +42,7 @@ final class AppModel: ObservableObject {
     private let virtualMicSelfTestController = VirtualMicSelfTestController()
     private let releaseUpdater = ReleaseUpdater()
     private let micSpeechActivityMonitor = MicSpeechActivityMonitor()
+    private let micInputLevelMonitor = MicInputLevelMonitor()
     private let micStateRecoveryMonitor = MicStateRecoveryMonitor()
     private let outputVolumeMonitor = OutputVolumeMonitor()
     private let dispatcher = ActionDispatcher()
@@ -98,6 +101,17 @@ final class AppModel: ObservableObject {
         micSpeechActivityMonitor.onSpeechDetected = { [weak self] in
             self?.handleSpeechDetectedWhileMuted($0)
         }
+        micInputLevelMonitor.onLog = { [weak self] in self?.appendLog($0) }
+        micInputLevelMonitor.onLevelChange = { [weak self] level in
+            Task { @MainActor in
+                self?.micInputLevel = level
+            }
+        }
+        micInputLevelMonitor.onStatusChange = { [weak self] status in
+            Task { @MainActor in
+                self?.micInputLevelStatus = status
+            }
+        }
         micStateRecoveryMonitor.onLog = { [weak self] in self?.appendLog($0) }
         micStateRecoveryMonitor.onStateChange = { [weak self] deviceTopologyMayHaveChanged in
             self?.handleObservedMicStateChange(deviceTopologyMayHaveChanged: deviceTopologyMayHaveChanged)
@@ -122,6 +136,9 @@ final class AppModel: ObservableObject {
         unifiedSystemLogMonitor.onButtonEvent = { [weak self] in self?.handleInterceptableButtonEvent($0) ?? false }
         siriActivationMonitor.onLog = { [weak self] in self?.appendLog($0) }
         siriActivationMonitor.onButtonEvent = { [weak self] in self?.handleFallbackButtonEvent($0) ?? false }
+        settingsWindowCoordinator.setVisibilityChangeHandler { [weak self] isVisible in
+            self?.updateActivationPolicyForSettingsVisibility(isVisible)
+        }
 
         isReady = true
         refreshRuntimeState()
@@ -139,12 +156,25 @@ final class AppModel: ObservableObject {
     }
 
     func toggleMicMute() {
+        guard canToggleMicMute else {
+            if let reason = mutedActionUnavailableReason {
+                appendLog("Ignoring mute toggle because \(reason)")
+            } else {
+                appendLog("Ignoring mute toggle because the virtual mic backend is not ready")
+            }
+            return
+        }
+
         dispatcher.perform(.toggleMicMute, micController: activeMicController, privateBridge: privateBridge)
         micState = activeMicController.currentState()
     }
 
     func openSettingsWindow() {
         settingsWindowCoordinator.show(model: self)
+    }
+
+    private func updateActivationPolicyForSettingsVisibility(_ isVisible: Bool) {
+        NSApp.setActivationPolicy(isVisible ? .regular : .accessory)
     }
 
     func requestAccessibilityPromptIfNeeded() {
@@ -391,6 +421,10 @@ final class AppModel: ObservableObject {
             preferredInputDeviceUID: resolvedPhysicalInputDeviceUID,
             followSystemDefaultInput: config.virtualMicInputDeviceUID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         )
+        micInputLevelMonitor.configure(
+            selectedInputDeviceUID: resolvedMicInputLevelDeviceUID,
+            selectedInputDeviceName: resolvedMicInputLevelDeviceName
+        )
         virtualMicProxyController.configure(
             enabled: config.micMuteBackend == .virtualMicProxy,
             selectedInputDeviceUID: requestedVirtualMicInputDeviceUID,
@@ -470,6 +504,15 @@ final class AppModel: ObservableObject {
         }
 
         guard action != .passthrough else {
+            return false
+        }
+
+        if action == .toggleMicMute, !canToggleMicMute {
+            if let reason = mutedActionUnavailableReason {
+                appendLog("Ignoring mute toggle mapping because \(reason)")
+            } else {
+                appendLog("Ignoring mute toggle mapping because the virtual mic backend is not ready")
+            }
             return false
         }
 
@@ -634,6 +677,37 @@ final class AppModel: ObservableObject {
         }
     }
 
+    var canToggleMicMute: Bool {
+        switch config.micMuteBackend {
+        case .deviceMute:
+            return true
+        case .virtualMicProxy:
+            return virtualMicDeviceDetected &&
+                !resolvedBundledVirtualMicDeviceUID.isEmpty &&
+                !resolvedPhysicalInputDeviceUID.isEmpty
+        }
+    }
+
+    private var mutedActionUnavailableReason: String? {
+        guard config.micMuteBackend == .virtualMicProxy else {
+            return nil
+        }
+
+        if !virtualMicDeviceDetected {
+            return "the virtual microphone device is not detected"
+        }
+
+        if resolvedBundledVirtualMicDeviceUID.isEmpty {
+            return "the virtual microphone backend is not ready yet"
+        }
+
+        if resolvedPhysicalInputDeviceUID.isEmpty {
+            return "no proxy input microphone is selected"
+        }
+
+        return nil
+    }
+
     private var shouldUseStandaloneMutedSpeechMonitor: Bool {
         config.enableMutedSpeechReminder && config.micMuteBackend == .deviceMute
     }
@@ -732,6 +806,24 @@ final class AppModel: ObservableObject {
         let resolvedUID = resolvedBundledVirtualMicDeviceUID
         return cachedAudioDevices.first(where: { $0.uid == resolvedUID })?.name
             ?? AudioDeviceCatalog.bundledVirtualMicDeviceName
+    }
+
+    private var resolvedMicInputLevelDeviceUID: String {
+        switch config.micMuteBackend {
+        case .deviceMute:
+            return resolvedPhysicalInputDeviceUID
+        case .virtualMicProxy:
+            return resolvedBundledVirtualMicDeviceUID
+        }
+    }
+
+    private var resolvedMicInputLevelDeviceName: String {
+        switch config.micMuteBackend {
+        case .deviceMute:
+            return resolvedPhysicalInputDeviceName
+        case .virtualMicProxy:
+            return resolvedBundledVirtualMicDeviceName
+        }
     }
 
     private var resolvedPhysicalInputDeviceName: String {

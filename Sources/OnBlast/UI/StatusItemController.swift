@@ -106,6 +106,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         stateItem.title = "Mic: \(model.micState.displayName)"
         toggleMuteItem.title = model.micState == .muted ? "Unmute Microphone" : "Mute Microphone"
+        toggleMuteItem.isEnabled = model.canToggleMicMute
         startAtLoginItem.title = model.config.startAtLogin ? "Disable Start at Login" : "Enable Start at Login"
     }
 
@@ -122,6 +123,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         if isRightClick {
             showContextMenu()
         } else {
+            guard model.canToggleMicMute else {
+                return
+            }
             model.toggleMicMute()
         }
     }
@@ -143,6 +147,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc
     private func toggleMuteFromMenu() {
+        guard model.canToggleMicMute else {
+            return
+        }
         model.toggleMicMute()
     }
 
