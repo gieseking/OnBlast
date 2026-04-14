@@ -37,6 +37,12 @@ struct SettingsView: View {
                 LabeledContent("Mic") {
                     Text(model.micState.displayName)
                 }
+                LabeledContent("Audio Indicator") {
+                    MicLevelIndicatorView(
+                        level: model.micInputLevel,
+                        status: model.micInputLevelStatus
+                    )
+                }
                 LabeledContent("Accessibility") {
                     Text(model.accessibilityGranted ? "Granted" : "Missing")
                 }
@@ -396,5 +402,40 @@ struct SettingsView: View {
         }
 
         return panel.runModal() == .OK ? panel.url?.path : nil
+    }
+}
+
+private struct MicLevelIndicatorView: View {
+    let level: Double
+    let status: String
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            HStack(alignment: .center, spacing: 3) {
+                ForEach(0..<12, id: \.self) { index in
+                    Capsule(style: .continuous)
+                        .fill(barColor(for: index))
+                        .frame(width: 4, height: barHeight(for: index))
+                }
+            }
+
+            Text(status)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func barColor(for index: Int) -> Color {
+        let clampedLevel = min(max(level, 0), 1)
+        let activeBars = Int((clampedLevel * 12).rounded(.up))
+        if index < activeBars {
+            return clampedLevel > 0.6 ? .green : .accentColor
+        }
+
+        return Color.secondary.opacity(0.18)
+    }
+
+    private func barHeight(for index: Int) -> CGFloat {
+        4 + CGFloat(index) * 0.9
     }
 }

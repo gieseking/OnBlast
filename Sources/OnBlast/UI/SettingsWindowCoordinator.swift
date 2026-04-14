@@ -5,9 +5,15 @@ import SwiftUI
 final class SettingsWindowCoordinator: NSObject, NSWindowDelegate {
     private weak var window: NSWindow?
     private weak var hostingController: NSViewController?
+    private var onVisibilityChange: ((Bool) -> Void)?
+
+    func setVisibilityChangeHandler(_ handler: @escaping (Bool) -> Void) {
+        onVisibilityChange = handler
+    }
 
     func show(model: AppModel) {
         if let window {
+            onVisibilityChange?(true)
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -34,6 +40,7 @@ final class SettingsWindowCoordinator: NSObject, NSWindowDelegate {
 
         self.window = window
         self.hostingController = hostingController
+        onVisibilityChange?(true)
 
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -42,5 +49,6 @@ final class SettingsWindowCoordinator: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         window = nil
         hostingController = nil
+        onVisibilityChange?(false)
     }
 }
