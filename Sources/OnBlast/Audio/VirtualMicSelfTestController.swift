@@ -68,9 +68,7 @@ final class VirtualMicSelfTestController: NSObject, @unchecked Sendable {
         self.stderrHandle = stderrHandle
 
         let timeoutWorkItem = DispatchWorkItem { [weak self] in
-            Task { @MainActor in
-                self?.handleTimeout()
-            }
+            self?.handleTimeout()
         }
         self.timeoutWorkItem = timeoutWorkItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.5 + helperTimeoutMargin, execute: timeoutWorkItem)

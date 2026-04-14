@@ -420,16 +420,24 @@ private struct MicLevelIndicatorView: View {
             }
 
             Text(status)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
         }
     }
 
-    private func barColor(for index: Int) -> Color {
+    private var visualLevel: Double {
         let clampedLevel = min(max(level, 0), 1)
-        let activeBars = Int((clampedLevel * 12).rounded(.up))
+
+        // Boost quiet input and stretch the full range so louder audio reaches
+        // the top of the meter instead of stalling around the midpoint.
+        let boostedLevel = pow(clampedLevel, 0.45) * 2.0
+        return min(max(boostedLevel, 0), 1)
+    }
+
+    private func barColor(for index: Int) -> Color {
+        let activeBars = Int((visualLevel * 12).rounded(.up))
         if index < activeBars {
-            return clampedLevel > 0.6 ? .green : .accentColor
+            return visualLevel > 0.6 ? .green : .accentColor
         }
 
         return Color.secondary.opacity(0.18)
