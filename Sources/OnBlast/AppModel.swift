@@ -882,6 +882,11 @@ final class AppModel: ObservableObject {
                 self.bundledVirtualMicDriverAvailable = bundledDriverAvailable
                 self.installedVirtualMicDriverPresent = installedDriverPresent
 
+                self.micInputLevelMonitor.configure(
+                    selectedInputDeviceUID: self.resolvedMicInputLevelDeviceUID,
+                    selectedInputDeviceName: self.resolvedMicInputLevelDeviceName
+                )
+
                 let shouldReconfigure = forceReconfigure || self.audioDeviceRefreshNeedsReconfigure || self.config.micMuteBackend == .virtualMicProxy
                 self.audioDeviceRefreshNeedsReconfigure = false
 
