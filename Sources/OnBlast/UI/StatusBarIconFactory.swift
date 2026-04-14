@@ -10,6 +10,8 @@ enum StatusBarIconFactory {
             return mutedImage()
         case .live:
             return liveImage()
+        case .disconnected:
+            return disconnectedImage()
         case .unavailable:
             return symbolImage(systemName: "mic.badge.xmark")
         case .unknown:
@@ -60,6 +62,31 @@ enum StatusBarIconFactory {
         slashPath.move(to: NSPoint(x: overlayRect.minX + 2.1, y: overlayRect.minY + 2.3))
         slashPath.line(to: NSPoint(x: overlayRect.maxX - 2.1, y: overlayRect.maxY - 2.3))
         slashPath.stroke()
+
+        return image
+    }
+
+    private static func disconnectedImage() -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size)
+        image.isTemplate = false
+
+        image.lockFocus()
+        defer { image.unlockFocus() }
+
+        if let disconnectedMic = tintedSymbol(
+            systemName: "mic.slash.fill",
+            pointSize: 14.2,
+            weight: .bold,
+            color: NSColor.systemOrange
+        ) {
+            disconnectedMic.draw(
+                in: NSRect(x: 1.6, y: 1.3, width: 14.8, height: 14.8),
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+        }
 
         return image
     }

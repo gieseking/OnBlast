@@ -316,8 +316,10 @@ final class AppModel: ObservableObject {
             previousConfiguration?.micMuteBackend != config.micMuteBackend ||
             previousConfiguration?.virtualMicInputDeviceUID != config.virtualMicInputDeviceUID {
             if config.micMuteBackend == .virtualMicProxy {
-                if virtualMicDeviceDetected {
-                    appendLog("Virtual mic proxy selected with source mic '\(resolvedPhysicalInputDeviceName)'")
+                if !requestedVirtualMicInputDeviceUID.isEmpty, requestedVirtualMicInputDeviceMissing {
+                    appendLog("Virtual mic proxy selected, but the chosen source mic is not currently connected")
+                } else if virtualMicDeviceDetected {
+                    appendLog("Virtual mic proxy selected with source mic '\(requestedVirtualMicInputDeviceName)'")
                 } else {
                     appendLog("Virtual mic proxy selected, but the virtual microphone device is not detected yet")
                 }
@@ -425,9 +427,9 @@ final class AppModel: ObservableObject {
         )
         virtualMicProxyController.configure(
             enabled: config.micMuteBackend == .virtualMicProxy,
-            selectedInputDeviceUID: resolvedPhysicalInputDeviceUID,
-            selectedInputDeviceName: resolvedPhysicalInputDeviceName,
-            selectedInputSampleRate: resolvedPhysicalInputSampleRate,
+            selectedInputDeviceUID: requestedVirtualMicInputDeviceUID,
+            selectedInputDeviceName: requestedVirtualMicInputDeviceName,
+            selectedInputSampleRate: requestedVirtualMicInputSampleRate,
             speechDetectionEnabled: config.enableMutedSpeechReminder,
             bundledVirtualDeviceUID: resolvedBundledVirtualMicDeviceUID,
             virtualDeviceDetected: virtualMicDeviceDetected
@@ -533,7 +535,7 @@ final class AppModel: ObservableObject {
             persistPreferredMicState(isMuted: true)
             mutedSpeechReminderArmed = true
             micSpeechActivityMonitor.suppressDetection(for: 1.5)
-        case .live, .unavailable, .unknown:
+        case .live, .disconnected, .unavailable, .unknown:
             if newMicState == .live {
                 persistPreferredMicState(isMuted: false)
             }
@@ -771,6 +773,24 @@ final class AppModel: ObservableObject {
         return inputAudioDevices.first?.uid ?? ""
     }
 
+    private var requestedVirtualMicInputDeviceUID: String {
+        let trimmed = config.virtualMicInputDeviceUID.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            return trimmed
+        }
+
+        return resolvedPhysicalInputDeviceUID
+    }
+
+    private var requestedVirtualMicInputDeviceMissing: Bool {
+        let requestedUID = requestedVirtualMicInputDeviceUID
+        guard !requestedUID.isEmpty else {
+            return false
+        }
+
+        return inputAudioDevices.contains(where: { $0.uid == requestedUID }) == false
+    }
+
     private var resolvedBundledVirtualMicDeviceUID: String {
         let trimmed = config.virtualMicOutputDeviceUID.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty,
@@ -814,6 +834,24 @@ final class AppModel: ObservableObject {
     private var resolvedPhysicalInputSampleRate: Double {
         let resolvedUID = resolvedPhysicalInputDeviceUID
         return inputAudioDevices.first(where: { $0.uid == resolvedUID })?.nominalSampleRate ?? 48_000
+    }
+
+    private var requestedVirtualMicInputDeviceName: String {
+        let requestedUID = requestedVirtualMicInputDeviceUID
+        guard !requestedUID.isEmpty else {
+            return "Automatic"
+        }
+
+        return inputAudioDevices.first(where: { $0.uid == requestedUID })?.name ?? "Selected microphone"
+    }
+
+    private var requestedVirtualMicInputSampleRate: Double {
+        let requestedUID = requestedVirtualMicInputDeviceUID
+        guard !requestedUID.isEmpty else {
+            return resolvedPhysicalInputSampleRate
+        }
+
+        return inputAudioDevices.first(where: { $0.uid == requestedUID })?.nominalSampleRate ?? 48_000
     }
 
     private func refreshAudioDevicesAsync(forceReconfigure: Bool) {
