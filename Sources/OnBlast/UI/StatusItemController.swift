@@ -21,11 +21,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         action: #selector(openSettings),
         keyEquivalent: ""
     )
-    private lazy var startAtLoginItem = NSMenuItem(
-        title: "",
-        action: #selector(toggleStartAtLogin),
-        keyEquivalent: ""
-    )
     private lazy var quitItem = NSMenuItem(
         title: "Quit",
         action: #selector(quitApp),
@@ -65,7 +60,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         toggleMuteItem.target = self
         openSettingsItem.target = self
-        startAtLoginItem.target = self
         quitItem.target = self
 
         menu.items = [
@@ -75,8 +69,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             toggleMuteItem,
             .separator(),
             openSettingsItem,
-            startAtLoginItem,
-            .separator(),
             quitItem
         ]
     }
@@ -107,7 +99,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         stateItem.title = "Mic: \(model.micState.displayName)"
         toggleMuteItem.title = model.micState == .muted ? "Unmute Microphone" : "Mute Microphone"
         toggleMuteItem.isEnabled = model.canToggleMicMute
-        startAtLoginItem.title = model.config.startAtLogin ? "Disable Start at Login" : "Enable Start at Login"
     }
 
     @objc
@@ -156,11 +147,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc
     private func openSettings() {
         model.openSettingsWindow()
-    }
-
-    @objc
-    private func toggleStartAtLogin() {
-        model.config.startAtLogin.toggle()
     }
 
     @objc
